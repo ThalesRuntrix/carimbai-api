@@ -10,19 +10,28 @@ export default async function handler(req, res) {
   try {
     const { categoria, search, page = 1, limit = 12 } = req.query;
 
-    let query = 'SELECT * FROM produtos';
+    let query = `
+      SELECT 
+        p.id,
+        p.nome,
+        p.preco,
+        c.nome AS categoria
+      FROM produtos p
+      LEFT JOIN categorias c ON p.categoria_id = c.id
+    `;
+
     const values = [];
 
     if (categoria) {
       values.push(categoria);
-      query += ` WHERE categoria = $${values.length}`;
+      query += ` WHERE p.categoria_id = $${values.length}`;
     }
 
     if (search) {
       values.push(`%${search}%`);
       query += values.length === 1
-        ? ` WHERE nome ILIKE $${values.length}`
-        : ` AND nome ILIKE $${values.length}`;
+        ? ` WHERE p.nome ILIKE $${values.length}`
+          : ` AND p.nome ILIKE $${values.length}`;
     }
 
     const offset = (page - 1) * limit;

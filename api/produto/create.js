@@ -8,17 +8,17 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { nome, categoria, preco, detalhes } = req.body;
+    const { nome, categoria_id, preco, detalhes } = req.body;
 
     const produto = await pool.query(
-      `INSERT INTO produtos (nome, categoria, preco)
+      `INSERT INTO produtos (nome, categoria_id, preco)
        VALUES ($1, $2, $3) RETURNING *`,
       [nome, categoria, preco]
     );
 
     const produtoId = produto.rows[0].id;
 
-    if (categoria === 'carimbo') {
+    if (categoria_id === 1) { //carimbo
       await pool.query(
         `INSERT INTO carimbos (produto_id, marca, modelo, cor, medida)
          VALUES ($1, $2, $3, $4, $5)`,
@@ -32,7 +32,7 @@ export default async function handler(req, res) {
       );
     }
 
-    if (categoria === 'cartao') {
+    if (categoria_id === 1) { //cartao
       await pool.query(
         `INSERT INTO cartoes (produto_id, medida, tipo_material, cor)
          VALUES ($1, $2, $3, $4)`,

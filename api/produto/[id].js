@@ -7,7 +7,17 @@ export default async function handler(req, res) {
 
   try {
     const produto = await pool.query(
-      'SELECT * FROM produtos WHERE id = $1',
+      `
+      SELECT 
+        p.id,
+        p.nome,
+        p.preco,
+        p.categoria_id,
+        c.nome AS categoria
+      FROM produtos p
+      LEFT JOIN categorias c ON p.categoria_id = c.id
+      WHERE p.id = $1
+      `,
       [id]
     );
 
