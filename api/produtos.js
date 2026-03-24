@@ -1,51 +1,44 @@
-import pool from '../lib/db.js';
-
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Método não permitido' });
-  }
-
   try {
-    const { categoria, search, page = 1, limit = 12 } = req.query;
+    const { categoria, search, page = 1, limit = 10 } = req.query;
 
-    let query = `
-      SELECT 
-        p.id,
-        p.nome,
-        p.preco,
-        c.nome AS categoria
-      FROM produtos p
-      LEFT JOIN categorias c ON p.categoria_id = c.id
-    `;
+    let url = `${process.env.SUPABASE_URL}/rest/v1/produtos?select=*,categorias(nome)`;
 
-    const values = [];
-
+    // filtros
     if (categoria) {
-      values.push(categoria);
-      query += ` WHERE p.categoria_id = $${values.length}`;
+      url += `&categoria_id=eq.${categoria}`;
     }
 
     if (search) {
-      values.push(`%${search}%`);
-      query += values.length === 1
-        ? ` WHERE p.nome ILIKE $${values.length}`
-          : ` AND p.nome ILIKE $${values.length}`;
+      url += `&nome=ilike.*${search}*`;
     }
 
-    const offset = (page - 1) * limit;
+    // paginação
+    const from = (page - 1) * limit;
+    const to = from + Number(limit) - 1;
 
-    values.push(limit);
-    values.push(offset);
+    const response = await fetch(url, {
+      headers: {
+        apikey: process.env.SUPABASE_KEY,
+        Authorization: `Bearer ${process.env.SUPABASE_KEY}`,
+        Range: `${from}-${to}`,
+      },
+    });
 
-    query += ` LIMIT $${values.length - 1} OFFSET $${values.length}`;
+    const data = await response.json();
 
-    const { rows } = await pool.query(query, values);
+    // formatar resposta (igual antes)
+    const produtos = data.map(p => ({
+      id: p.id,
+      nome: p.nome,
+      preco: p.preco,
+      categoria: p.categorias?.nome || null,
+    }));
 
-    res.status(200).json(rows);
+    res.status(200).json(produtos);
+
   } catch (err) {
-    console.error("ERRO COMPLETO:", err);
-    res.status(500).json({ error: err.message || "Erro desconhecido" });
+    console.error("ERRO:", err);
+    res.status(500).json({ error: "Erro ao buscar produtos" });
   }
 }
