@@ -47,6 +47,8 @@ export default async function handler(req, res) {
 
     res.status(201).json({ success: true, produtoId });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("ERRO COMPLETO:", err);
+    res.status(500).json({ error: err.message || "Erro desconhecido" });
+    
   }
 }
