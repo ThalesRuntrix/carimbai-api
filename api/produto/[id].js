@@ -1,54 +1,127 @@
-import pool from '../../lib/db,js';
-
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // 🔥 CORS
+  res.setHeader("Access-Control-Allow-Origin", "https://runtrix.com.br");
+  res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  const { id } = req.query;
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
 
   try {
-    const produto = await pool.query(
-      `
-      SELECT 
-        p.id,
-        p.nome,
-        p.preco,
-        p.categoria_id,
-        c.nome AS categoria
-      FROM produtos p
-      LEFT JOIN categorias c ON p.categoria_id = c.id
-      WHERE p.id = $1
-      `,
-      [id]
+    const { id } = req.query;
+
+    if (!id) {
+      return res.status(400).json({ error: "ID obrigatório" });
+    }
+
+    // =========================
+    // 🔹 1. BUSCAR PRODUTO BASE
+    // =========================
+    const produtoRes = await fetch(
+      `${process.env.SUPABASE_URL}/rest/v1/produtos?id=eq.${id}&select=*,categorias(nome)`,
+      {
+        headers: {
+          apikey: process.env.SUPABASE_KEY,
+          Authorization: `Bearer ${process.env.SUPABASE_KEY}`,
+        },
+      }
     );
 
-    if (produto.rows.length === 0) {
-      return res.status(404).json({ error: 'Produto não encontrado' });
+    const produtoData = await produtoRes.json();
+
+    if (!produtoData || produtoData.length === 0) {
+      return res.status(404).json({ error: "Produto não encontrado" });
     }
 
-    const data = produto.rows[0];
+    const produto = produtoData[0];
 
-    let detalhes = {};
+    const categoriaNome = produto.categorias?.nome;
 
-    if (data.categoria === 'carimbo') {
-      const result = await pool.query(
-        'SELECT * FROM carimbos WHERE produto_id = $1',
-        [id]
+    // =========================
+    // 🔹 2. BUSCAR DETALHES
+    // =========================
+    let detalhes = null;
+
+    // 🔥 CARIMBOS
+    if (categoriaNome === "carimbo") {
+      const resCarimbo = await fetch(
+        `${process.env.SUPABASE_URL}/rest/v1/carimbos?produto_id=eq.${id}`,
+        {
+          headers: {
+            apikey: process.env.SUPABASE_KEY,
+            Authorization: `Bearer ${process.env.SUPABASE_KEY}`,
+          },
+        }
       );
-      detalhes = result.rows[0] || {};
+
+      const data = await resCarimbo.json();
+      detalhes = data[0] || null;
     }
 
-    if (data.categoria === 'cartao') {
-      const result = await pool.query(
-        'SELECT * FROM cartoes WHERE produto_id = $1',
-        [id]
+    // 🔥 CARTÕES
+    if (categoriaNome === "cartao") {
+      const resCartao = await fetch(
+        `${process.env.SUPABASE_URL}/rest/v1/cartoes?produto_id=eq.${id}`,
+        {
+          headers: {
+            apikey: process.env.SUPABASE_KEY,
+            Authorization: `Bearer ${process.env.SUPABASE_KEY}`,
+          },
+        }
       );
-      detalhes = result.rows[0] || {};
+
+      const data = await resCartao.json();
+      detalhes = data[0] || null;
     }
 
-    res.status(200).json({ ...data, detalhes });
+    // 🔥 PLACAS
+    if (categoriaNome === "placa") {
+      const resPlaca = await fetch(
+        `${process.env.SUPABASE_URL}/rest/v1/placas?produto_id=eq.${id}`,
+        {
+          headers: {
+            apikey: process.env.SUPABASE_KEY,
+            Authorization: `Bearer ${process.env.SUPABASE_KEY}`,
+          },
+        }
+      );
+
+      const data = await resPlaca.json();
+      detalhes = data[0] || null;
+    }
+
+    // 🔥 PET
+    if (categoriaNome === "pet") {
+      const resPet = await fetch(
+        `${process.env.SUPABASE_URL}/rest/v1/pet?produto_id=eq.${id}`,
+        {
+          headers: {
+            apikey: process.env.SUPABASE_KEY,
+            Authorization: `Bearer ${process.env.SUPABASE_KEY}`,
+          },
+        }
+      );
+
+      const data = await resPet.json();
+      detalhes = data[0] || null;
+    }
+
+    // =========================
+    // 🔹 3. FORMATAR RESPOSTA
+    // =========================
+    const response = {
+      id: produto.id,
+      nome: produto.nome,
+      preco: produto.preco,
+      categoria: categoriaNome,
+      detalhes: detalhes,
+    };
+
+    return res.status(200).json(response);
+
   } catch (err) {
-    console.error("ERRO COMPLETO:", err);
-    res.status(500).json({ error: err.message || "Erro desconhecido" });
-    
+    console.error("ERRO:", err);
+    return res.status(500).json({ error: "Erro ao buscar produto" });
   }
 }
