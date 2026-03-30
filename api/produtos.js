@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-  // CORS
+  // 🔥 CORS
   res.setHeader("Access-Control-Allow-Origin", "https://runtrix.com.br");
   res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -9,39 +9,45 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { categoria, tipo_material } = req.query;
+    const { categoria } = req.query;
+
+    // 🔥 CONFIG DINÂMICA
+    const config = {
+      carimbo: {
+        tabela: "carimbos",
+        filtros: ["tipo_material"]
+      },
+      placa: {
+        tabela: "placas",
+        filtros: ["tipo_material"]
+      },
+      cartao: {
+        tabela: "cartoes",
+        filtros: ["tipo_material"]
+      },
+      pet: {
+        tabela: "pet",
+        filtros: ["formato"]
+      }
+    };
 
     let select = "*,categorias!inner(nome)";
     let filtros = "";
 
-    // 🔥 CARIMBOS
-    if (categoria === "carimbo") {
-      select += ",carimbos!inner(*)";
+    // 🔥 aplica config da categoria
+    const cfg = config[categoria];
 
-      if (tipo_material) {
-        filtros += `&carimbos.tipo_material=eq.${tipo_material}`;
-      }
+    if (cfg) {
+      select += `,${cfg.tabela}!inner(*)`;
+
+      cfg.filtros.forEach(filtro => {
+        if (req.query[filtro]) {
+          filtros += `&${cfg.tabela}.${filtro}=eq.${req.query[filtro]}`;
+        }
+      });
     }
 
-    // 🔥 PLACAS
-    if (categoria === "placa") {
-      select += ",placas!inner(*)";
-
-      if (tipo_material) {
-        filtros += `&placas.tipo_material=eq.${tipo_material}`;
-      }
-    }
-
-    // 🔥 CARTÕES
-    if (categoria === "cartao") {
-      select += ",cartoes!inner(*)";
-
-      if (tipo_material) {
-        filtros += `&cartoes.tipo_material=eq.${tipo_material}`;
-      }
-    }
-
-    // 🔥 URL FINAL CORRETA
+    // 🔥 monta URL
     let url = `${process.env.SUPABASE_URL}/rest/v1/produtos?select=${select}`;
 
     if (categoria) {
@@ -50,7 +56,7 @@ export default async function handler(req, res) {
 
     url += filtros;
 
-    console.log("URL FINAL:", url); // 🔥 DEBUG IMPORTANTE
+    console.log("URL FINAL:", url);
 
     const response = await fetch(url, {
       headers: {
@@ -61,13 +67,19 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    console.log("DATA:", data); // 🔥 DEBUG
+    // 🔥 proteção contra erro do Supabase
+    if (!Array.isArray(data)) {
+      console.error("Erro Supabase:", data);
+      return res.status(500).json({ error: data.message });
+    }
 
+    // 🔥 normalização
     const produtos = data.map(p => {
       const detalhes =
         p.carimbos?.[0] ||
         p.placas?.[0] ||
         p.cartoes?.[0] ||
+        p.pet?.[0] ||
         null;
 
       return {
