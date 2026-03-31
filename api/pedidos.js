@@ -34,6 +34,7 @@ export default async function handler(req, res) {
 
           produto_id: body.produto_id,
           produto_nome: body.produto_nome,
+          total: body.total,
 
           nome: body.nome,
           email: body.email,
