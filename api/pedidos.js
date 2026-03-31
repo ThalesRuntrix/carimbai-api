@@ -24,9 +24,10 @@ export default async function handler(req, res) {
       {
         method: "POST",
         headers: {
-          apikey: process.env.SUPABASE_KEY,
-          Authorization: `Bearer ${process.env.SUPABASE_KEY}`,
-          "Content-Type": "application/json",
+            apikey: process.env.SUPABASE_KEY,
+            Authorization: `Bearer ${process.env.SUPABASE_KEY}`,
+            "Content-Type": "application/json",
+            Prefer: "return=representation" 
         },
         body: JSON.stringify({
           pedido_codigo: pedidoCodigo,
@@ -52,7 +53,11 @@ export default async function handler(req, res) {
       }
     );
 
-    const data = await response.json();
+    if (!response.ok) {
+        console.error("ERRO SUPABASE:", data);
+        return res.status(500).json({ error: "Erro ao inserir pedido" });
+    }
+    const data = await response.json();    
 
     return res.status(200).json({
       success: true,
@@ -60,7 +65,7 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("ERRO SUPABASE:", data);
     return res.status(500).json({ error: "Erro ao criar pedido" });
   }
 }
