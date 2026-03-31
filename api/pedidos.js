@@ -1,6 +1,6 @@
 export default async function handler(req, res) {
   // CORS
-  res.setHeader("Access-Control-Allow-Origin", "https://runtrix.com.br/carimbai/checkout/");
+  res.setHeader("Access-Control-Allow-Origin", "https://runtrix.com.br/carimbai/checkout/index.html");
   res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
