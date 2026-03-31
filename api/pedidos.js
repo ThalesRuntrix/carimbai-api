@@ -49,6 +49,8 @@ export default async function handler(req, res) {
           cep: body.cep,
 
           entrega: body.entrega,
+          frete: body.frete,
+          prazo: body.prazo,
           pagamento: body.pagamento,
         }),
       }
