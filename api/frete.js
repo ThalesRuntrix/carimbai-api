@@ -29,7 +29,7 @@ export default async function handler(req, res) {
 
     // 🔥 chamada correta da API
     const response = await fetch(
-      "https://sandbox.melhorenvio.com.br/api/v2/me/shipment/calculate",
+      "https://melhorenvio.com.br/api/v2/me/shipment/calculate",
       {
         method: "POST",
         headers: {
