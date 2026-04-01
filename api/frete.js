@@ -75,10 +75,15 @@ export default async function handler(req, res) {
       Number(curr.price) < Number(prev.price) ? curr : prev
     );
 
-    return res.status(200).json({
-      valor: Number(melhor.price),
-      prazo: melhor.delivery_time
-    });
+    return res.status(200).json(
+      opcoesValidas.map(item => ({
+        id: item.id,
+        nome: item.name,
+        empresa: item.company.name,
+        valor: Number(item.price),
+        prazo: item.delivery_time
+      }))
+    );
 
   } catch (err) {
     console.error("ERRO FRETE:", err);
