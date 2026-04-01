@@ -16,18 +16,13 @@ export default async function handler(req, res) {
     } catch {
       body = {};
     }
-
-    const { cep } = body;
-    console.log("CEP:", cep);
+    const destino = body;
+    console.log(destino);           
 
     const origem = {
       postal_code: "06803290"
     };   
 
-    const destino = {
-      postal_code: cep
-    };   
-    console.log("DESTINO" + destino);
 
     const response = await fetch("https://sandbox.melhorenvio.com.br/api/v2/me/shipment/calculate", {
       method: "POST",
@@ -38,7 +33,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         from: { origem },
-        to: { destino },
+        to: { postal_code: destino },
         package: {
           height: 4,
           width: 15,
