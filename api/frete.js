@@ -55,33 +55,47 @@ export default async function handler(req, res) {
     );
 
     const data = await response.json();
-
-    console.log("RESPOSTA MELHOR ENVIO:", data);
-
-    // 🔥 tratamento de erro real
+    
     if (!Array.isArray(data) || data.length === 0) {
       throw new Error("Sem opções de frete");
     }
 
     // 🔥 filtrar apenas opções válidas
-    const opcoesValidas = data.filter(item => item.price && !item.error);
+    const validos = data.filter(op => op.price && !op.error);
 
-    if (!opcoesValidas.length) {
-      throw new Error("Nenhuma opção válida");
-    }
-
-    // 🔥 pegar mais barato
-    const melhor = opcoesValidas.reduce((prev, curr) =>
-      Number(curr.price) < Number(prev.price) ? curr : prev
+    // 🔥 ordenar por preço (crescente)
+    const ordenadosPorPreco = [...validos].sort(
+      (a, b) => Number(a.price) - Number(b.price)
     );
 
+    // 🔥 ordenar por prazo (crescente)
+    const ordenadosPorPrazo = [...validos].sort(
+      (a, b) => Number(a.delivery_time) - Number(b.delivery_time)
+    );
+
+    // 🔥 pegar opções estratégicas
+    const maisBarato = ordenadosPorPreco[0];
+    const segundoMaisBarato = ordenadosPorPreco[1];
+    const maisRapido = ordenadosPorPrazo[0];
+
+    // 🔥 evitar duplicados
+    const opcoesSelecionadas = [];
+    const ids = new Set();
+
+    [maisBarato, segundoMaisBarato, maisRapido].forEach(op => {
+      if (op && !ids.has(op.id)) {
+        ids.add(op.id);
+        opcoesSelecionadas.push(op);
+      }
+    });
+
     return res.status(200).json(
-      opcoesValidas.map(item => ({
-        id: item.id,
-        nome: item.name,
-        empresa: item.company.name,
-        valor: Number(item.price),
-        prazo: item.delivery_time
+      opcoesSelecionadas.map(op => ({
+        id: op.id,
+        nome: op.name,
+        empresa: op.company.name,
+        valor: Number(op.price),
+        prazo: op.delivery_time
       }))
     );
 
