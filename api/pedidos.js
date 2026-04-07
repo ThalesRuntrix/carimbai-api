@@ -1,24 +1,27 @@
-import { formatarPedidoPayload } from "./util/formarPedido";
+import { formatarPedidoPayload } from "./util/formatarPedido.js";
 
-export default async function handler(req, res) {
-
+function send(res, status, data) {
   res.setHeader("Access-Control-Allow-Origin", "https://runtrix.com.br");
   res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
+  return res.status(status).json(data);
+}
+
+export default async function handler(req, res) {
+
+  // 🔥 Preflight
   if (req.method === "OPTIONS") {
-    return res.status(200).end();
+    return send(res, 200, {});
   }
 
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Método não permitido" });
+    return send(res, 405, { error: "Método não permitido" });
   }
 
   try {
-    // 🔥 1. Formatar payload
     const payload = formatarPedidoPayload(req.body);
 
-    // 🔥 2. Chamar função no banco
     const response = await fetch(
       `${process.env.SUPABASE_URL}/rest/v1/rpc/criar_pedido`,
       {
@@ -38,14 +41,13 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       console.error("Erro Supabase:", data);
-      return res.status(500).json({ error: "Erro ao criar pedido" });
+      return send(res, 500, { error: "Erro ao criar pedido" });
     }
 
-    return res.status(200).json(data);
+    return send(res, 200, data);
 
   } catch (err) {
     console.error("Erro geral:", err);
-    return res.status(500).json({ error: "Erro interno" });
+    return send(res, 500, { error: "Erro interno" });
   }
-
 }
