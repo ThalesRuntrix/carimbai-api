@@ -20,6 +20,7 @@ export default async function handler(req, res) {
 
   try {
     const payload = formatarPedidoPayload(req.body);
+    console.warn("PAYLOAD: ", payload);
 
     const { cliente, endereco, itens, pagamento, frete, prazo, entrega } = payload;
 
