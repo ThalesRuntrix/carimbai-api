@@ -1,16 +1,15 @@
-import { formatarPedidoPayload } from "./util/formatarPedido.js";
+import { supabase } from "../lib/supabase";
+import { formatarPedidoPayload } from "./util/formarPedido";
 
 function send(res, status, data) {
   res.setHeader("Access-Control-Allow-Origin", "https://runtrix.com.br");
   res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
   return res.status(status).json(data);
 }
 
 export default async function handler(req, res) {
 
-  // 🔥 Preflight
   if (req.method === "OPTIONS") {
     return send(res, 200, {});
   }
@@ -22,32 +21,29 @@ export default async function handler(req, res) {
   try {
     const payload = formatarPedidoPayload(req.body);
 
-    const response = await fetch(
-      `${process.env.SUPABASE_URL}/rest/v1/rpc/criar_pedido`,
-      {
-        method: "POST",
-        headers: {
-          apikey: process.env.SUPABASE_KEY,
-          Authorization: `Bearer ${process.env.SUPABASE_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          dados: payload,
-        }),
-      }
-    );
+    const { cliente, endereco, itens, pagamento, frete, prazo, entrega } = payload;
 
-    const data = await response.json();
+    let total = itens.reduce((acc, item) => acc + item.subtotal, 0);
+    if (pagamento === "pix") {
+      total = total * 0.9;
+    }
 
-    if (!response.ok) {
-      console.error("Erro Supabase:", data);
-      return send(res, 500, { error: "Erro ao criar pedido" });
+    // ============================
+    // 🔥 TRANSAÇÃO
+    // ============================
+    const { data, error } = await supabase.rpc("executar_transacao_pedido", {
+      payload
+    });
+
+    if (error) {
+      console.error(error);
+      return send(res, 500, { error: "Erro ao processar pedido" });
     }
 
     return send(res, 200, data);
 
   } catch (err) {
-    console.error("Erro geral:", err);
+    console.error(err);
     return send(res, 500, { error: "Erro interno" });
   }
 }
