@@ -30,8 +30,8 @@ export function formatarPedidoPayload(data) {
         produto_id: Number(data.produto_id),
         quantidade: 1, // por enquanto fixo
         preco_unitario: 0, // ⚠️ vamos falar disso abaixo
-        personalizacao_txt: data.produto_nome || null,
-        personalizacao_img: null,
+        personalizacao_txt: data.personalizacao_txt || null,
+        personalizacao_img: data.personalizacao_img ||null,
       },
     ],
   };
