@@ -1,4 +1,4 @@
-import { pool } from "../../lib/db";
+import { pool } from "../lib/db.js";
 import { formatarPedidoPayload } from "./util/formarPedido";
 
 function send(res, status, data) {
