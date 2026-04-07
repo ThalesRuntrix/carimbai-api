@@ -1,5 +1,5 @@
 import { pool } from "../lib/db.js";
-import { formatarPedidoPayload } from "./util/formarPedido";
+import { formatarPedidoPayload } from "./util/formatarPedido.js";
 
 function send(res, status, data) {
   res.setHeader("Access-Control-Allow-Origin", "https://runtrix.com.br");
