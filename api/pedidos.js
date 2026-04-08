@@ -22,7 +22,7 @@ export default async function handler(req, res) {
 
   try {
     const payload = formatarPedidoPayload(req.body);
-    const { cliente, endereco, itens, pagamento, frete, prazo, entrega } = payload;
+    const { cliente, endereco, itens, pagamento, frete, prazo, entrega, frete_nome } = payload;
 
     await client.query("BEGIN");
 
@@ -89,12 +89,12 @@ export default async function handler(req, res) {
         pedido_codigo,
         cliente_id,
         rua, numero, complemento, bairro, cidade, estado, cep,
-        entrega, pagamento, frete, prazo, status, total
+        entrega, pagamento, frete, prazo, status, total, transportadora
       )
       VALUES (
         $1, $2,
         $3, $4, $5, $6, $7, $8, $9,
-        $10, $11, $12, $13, 'novo', $14
+        $10, $11, $12, $13, 'novo', $14, $15
       )
       RETURNING id`,
       [
@@ -111,7 +111,8 @@ export default async function handler(req, res) {
         pagamento,
         frete || 0,
         prazo || 0,
-        total
+        total,
+        frete_nome
       ]
     );
 
