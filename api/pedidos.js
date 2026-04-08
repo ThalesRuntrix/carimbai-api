@@ -72,12 +72,14 @@ export default async function handler(req, res) {
       total += subtotal;
     }
 
+    let desconto = 0;
+
     // 💰 desconto PIX
     if (pagamento === "pix") {
-      total = total * 0.9;
+      desconto = total * 0.05;      
     }
-
-    total += frete || 0;
+    total += frete - desconto || 0;
+    
 
     // ============================
     // 🔥 3. PEDIDO
