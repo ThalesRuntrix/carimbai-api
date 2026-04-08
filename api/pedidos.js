@@ -22,7 +22,7 @@ export default async function handler(req, res) {
 
   try {
     const payload = formatarPedidoPayload(req.body);
-    const { cliente, endereco, itens, pagamento, frete, prazo, entrega, frete_nome } = payload;
+    const { cliente, endereco, itens, pagamento, frete, prazo, entrega, transportadora } = payload;
 
     await client.query("BEGIN");
 
@@ -112,7 +112,7 @@ export default async function handler(req, res) {
         frete || 0,
         prazo || 0,
         total,
-        frete_nome
+        transportadora
       ]
     );
 

@@ -24,6 +24,7 @@ export function formatarPedidoPayload(data) {
 
     frete: Number(data.frete_valor) || 0,
     prazo: Number(data.frete_prazo) || 0,
+    transportadora: data.frete_nome || "",
 
     itens: [
       {
