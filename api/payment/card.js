@@ -1,4 +1,7 @@
-import mercadopago from "../../lib/mercadopago.js";
+import client from "../../lib/mercadoPago.js";
+import { Preference } from "mercadopago";
+
+const preferenceApi = new Preference(client);
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "https://runtrix.com.br");
@@ -12,38 +15,29 @@ export default async function handler(req, res) {
   try {
     const pedido = req.body;
 
-    const preference =
-      await mercadopago.preferences.create({
+    const preference = await preferenceApi.create({
+      body: {
         items: [
           {
             title: `Pedido ${pedido.pedido_codigo}`,
             quantity: 1,
-            unit_price: Number(pedido.valor_total)
+            unit_price: Number(pedido.total)
           }
         ],
 
         external_reference: String(pedido.id),
 
         notification_url:
-          "https://carimbai-api.vercel.app/api/payment/webhook",
-
-        back_urls: {
-          success: "https://runtrix.com.br/sucesso",
-          failure: "https://runtrix.com.br/falha",
-          pending: "https://runtrix.com.br/pendente"
-        },
-
-        auto_return: "approved"
-      });
+          "https://carimbai-api.vercel.app/api/payment/webhook"
+      }
+    });
 
     return res.status(200).json({
-      init_point: preference.body.init_point
+      init_point: preference.init_point
     });
 
   } catch (err) {
     console.error(err);
-    return res.status(500).json({
-      error: "Erro no cartão"
-    });
+    return res.status(500).json({ error: "Erro cartão" });
   }
 }

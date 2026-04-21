@@ -1,4 +1,7 @@
-import mercadopago from "../../lib/mercadoPago.js";
+import client from "../../lib/mercadoPago.js";
+import { Payment } from "mercadopago";
+
+const paymentApi = new Payment(client);
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "https://runtrix.com.br");
@@ -9,41 +12,36 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
   try {
     const pedido = req.body;
 
-    const payment = await mercadopago.payment.create({
-      transaction_amount: Number(pedido.valor_total),
-      description: `Pedido #${pedido.pedido_codigo}`,
-      payment_method_id: "pix",
+    const payment = await paymentApi.create({
+      body: {
+        transaction_amount: Number(pedido.total),
+        description: `Pedido ${pedido.pedido_codigo}`,
+        payment_method_id: "pix",
 
-      payer: {
-        first_name: pedido.nome,
-        email: pedido.email
-      },
+        payer: {
+          email: pedido.email || "cliente@email.com"
+        },
 
-      external_reference: String(pedido.id),
+        external_reference: String(pedido.id),
 
-      notification_url:
-        "https://carimbai-api.vercel.app/api/payment/webhook"
+        notification_url:
+          "https://carimbai-api.vercel.app/api/payment/webhook"
+      }
     });
 
     return res.status(200).json({
-      payment_id: payment.body.id,
-
+      payment_id: payment.id,
       qr_code:
-        payment.body.point_of_interaction.transaction_data.qr_code,
-
+        payment.point_of_interaction.transaction_data.qr_code,
       qr_code_base64:
-        payment.body.point_of_interaction.transaction_data.qr_code_base64
+        payment.point_of_interaction.transaction_data.qr_code_base64
     });
 
   } catch (err) {
-    console.error("Erro PIX:", err);
-    res.status(500).json({ error: "Erro ao gerar PIX" });
+    console.error(err);
+    return res.status(500).json({ error: "Erro PIX" });
   }
 }
