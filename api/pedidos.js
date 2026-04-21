@@ -97,7 +97,7 @@ export default async function handler(req, res) {
         $3, $4, $5, $6, $7, $8, $9,
         $10, $11, $12, $13, 'novo', 'pending', $14, $15
       )
-      RETURNING id`,
+      RETURNING id, pedido_codigo`,
       [
         `PED-${Date.now()}`,
         clienteId,
@@ -118,6 +118,7 @@ export default async function handler(req, res) {
     );
 
     const pedidoId = pedido.rows[0].id;
+    const pedidoCodigo = pedido.rows[0].pedido_codigo;
 
     // ============================
     // 🔥 4. ITENS
@@ -154,6 +155,7 @@ export default async function handler(req, res) {
     return send(res, 200, {
       success: true,
       pedido_id: pedidoId,
+      pedido_codigo: pedidoCodigo,
       total
     });
 
