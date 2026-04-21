@@ -14,30 +14,36 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { produtoId } = req.body;
-
-    // 🔥 BUSCAR DO BANCO (igual no produtos.js)
-    const produto = {
-      id: produtoId,
-      nome: "Carimbo Personalizado",
-      preco: 29.9
-    };
+    const pedido = req.body;
 
     const payment = await mercadopago.payment.create({
-      transaction_amount: produto.preco,
-      description: produto.nome,
+      transaction_amount: Number(pedido.valor_total),
+      description: `Pedido #${pedido.pedido_codigo}`,
       payment_method_id: "pix",
-      notification_url: "https://SEU-DOMINIO/api/payment/webhook"
+
+      payer: {
+        first_name: pedido.nome,
+        email: pedido.email
+      },
+
+      external_reference: String(pedido.id),
+
+      notification_url:
+        "https://carimbai-api.vercel.app/api/payment/webhook"
     });
 
     return res.status(200).json({
+      payment_id: payment.body.id,
+
+      qr_code:
+        payment.body.point_of_interaction.transaction_data.qr_code,
+
       qr_code_base64:
-        payment.body.point_of_interaction.transaction_data.qr_code_base64,
-      payment_id: payment.body.id
+        payment.body.point_of_interaction.transaction_data.qr_code_base64
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("Erro PIX:", err);
     res.status(500).json({ error: "Erro ao gerar PIX" });
   }
 }
