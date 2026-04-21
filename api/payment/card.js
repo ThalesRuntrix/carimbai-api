@@ -25,7 +25,7 @@ export default async function handler(req, res) {
           }
         ],
 
-        external_reference: String(pedido.id),
+        external_reference: String(pedido_id),
 
         notification_url:
           "https://carimbai-api.vercel.app/api/payment/webhook"
