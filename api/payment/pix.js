@@ -13,23 +13,21 @@ export default async function handler(req, res) {
   }
 
   try {
-    const pedido = req.body;
+    const { pedido_id, pedido_codigo, total } = req.body;    
 
     const payment = await paymentApi.create({
       body: {
-        transaction_amount: Number(pedido.total),
-        description: `Pedido ${pedido.pedido_codigo}`,
+        transaction_amount: Number(total),
+        description: `Pedido ${pedido_codigo}`,
         payment_method_id: "pix",
-
-        payer: {
-          email: pedido.email || "cliente@email.com"
-        },
-
         external_reference: String(pedido_id),
-
         notification_url:
-          "https://carimbai-api.vercel.app/api/payment/webhook"
+          "https://carimbai-api.vercel.app/api/payment/webhook",
+          payer: {
+          email: pedido.email || "cliente@email.com"
+        }
       }
+      
     });
 
     return res.status(200).json({

@@ -13,15 +13,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    const pedido = req.body;
+    const { pedido_id, pedido_codigo, total } = req.body;
 
     const preference = await preferenceApi.create({
       body: {
         items: [
           {
-            title: `Pedido ${pedido.pedido_codigo}`,
+            title: `Pedido ${pedido_codigo}`,
             quantity: 1,
-            unit_price: Number(pedido.total)
+            unit_price: Number(total)
           }
         ],
 
