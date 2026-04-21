@@ -89,12 +89,13 @@ export default async function handler(req, res) {
         pedido_codigo,
         cliente_id,
         rua, numero, complemento, bairro, cidade, estado, cep,
-        entrega, pagamento, frete, prazo, status, total, transportadora
+        entrega, pagamento, frete, prazo, status_pedido, status_pagamento, total, transportadora
       )
       VALUES (
-        $1, $2,
+        $1, 
+        $2,
         $3, $4, $5, $6, $7, $8, $9,
-        $10, $11, $12, $13, 'pending', $14, $15
+        $10, $11, $12, $13, 'novo', 'pending', $14, $15
       )
       RETURNING id`,
       [
