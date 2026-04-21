@@ -152,8 +152,7 @@ export default async function handler(req, res) {
     // ============================
     await client.query("COMMIT");
 
-    return send(res, 200, {
-      success: true,
+    return send(res, 200, {      
       pedido_id: pedidoId,
       pedido_codigo: pedidoCodigo,
       total
