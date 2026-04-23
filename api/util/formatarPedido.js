@@ -6,6 +6,7 @@ export function formatarPedidoPayload(data) {
     cliente: {
       nome: data.nome,
       email: data.email,
+      whatsapp: data.whatsapp,
       cpf: cpfLimpo,
     },
 

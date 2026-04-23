@@ -114,7 +114,7 @@ export default async function handler(req, res) {
         prazo || 0,
         total,
         transportadora,
-        whatsapp
+        cliente.whatsapp
       ]
     );
 
