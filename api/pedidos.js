@@ -40,10 +40,10 @@ export default async function handler(req, res) {
       clienteId = clienteExistente.rows[0].id;
     } else {
       const novoCliente = await client.query(
-        `INSERT INTO clientes (nome, email, cpf)
-         VALUES ($1, $2, $3)
+        `INSERT INTO clientes (nome, email, whatsapp, cpf)
+         VALUES ($1, $2, $3, $4)
          RETURNING id`,
-        [cliente.nome, cliente.email, cliente.cpf]
+        [cliente.nome, cliente.email, cliente.whatsapp, cliente.cpf]
       );
       clienteId = novoCliente.rows[0].id;
     }
@@ -89,13 +89,13 @@ export default async function handler(req, res) {
         pedido_codigo,
         cliente_id,
         rua, numero, complemento, bairro, cidade, estado, cep,
-        entrega, pagamento, frete, prazo, status_pedido, status_pagamento, total, transportadora
+        entrega, pagamento, frete, prazo, status_pedido, status_pagamento, total, transportadora, whatsapp
       )
       VALUES (
         $1, 
         $2,
         $3, $4, $5, $6, $7, $8, $9,
-        $10, $11, $12, $13, 'novo', 'pending', $14, $15
+        $10, $11, $12, $13, 'novo', 'pending', $14, $15, $16
       )
       RETURNING id, pedido_codigo`,
       [
