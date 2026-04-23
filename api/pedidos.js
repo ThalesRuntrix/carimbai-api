@@ -113,7 +113,8 @@ export default async function handler(req, res) {
         frete || 0,
         prazo || 0,
         total,
-        transportadora
+        transportadora,
+        whatsapp
       ]
     );
 
