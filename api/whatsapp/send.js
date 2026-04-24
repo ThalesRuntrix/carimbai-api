@@ -42,7 +42,7 @@ export default async function handler(req, res) {
           to: phone,
           type: "template",
           template: {
-            name: "pedido_aprovado",
+            name: "pedido_confirmado",
             language: {
               code: "pt_BR"
             },
