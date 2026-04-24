@@ -4,6 +4,7 @@ import { Payment } from "mercadopago";
 const paymentApi = new Payment(client);
 
 export default async function handler(req, res) {
+
   res.setHeader("Access-Control-Allow-Origin", "https://runtrix.com.br");
   res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -17,6 +18,7 @@ export default async function handler(req, res) {
   }
 
   try {
+
     const body = req.body;
 
     if (body.type !== "payment") {
@@ -40,9 +42,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
 
-    let statusPagamento = status;
     let statusPedido = "aguardando_pagamento";
-
     let paidAt = null;
     let cancelledAt = null;
 
@@ -60,7 +60,6 @@ export default async function handler(req, res) {
       cancelledAt = new Date().toISOString();
     }
 
-    // Atualiza pedido
     await fetch(
       `${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}`,
       {
@@ -71,7 +70,7 @@ export default async function handler(req, res) {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          status_pagamento: statusPagamento,
+          status_pagamento: status,
           status_pedido: statusPedido,
           mp_payment_id: String(paymentId),
           paid_at: paidAt,
@@ -80,7 +79,7 @@ export default async function handler(req, res) {
       }
     );
 
-    // SE APROVADO -> busca pedido e envia whatsapp
+    // WHATSAPP AUTOMÁTICO
     if (status === "approved") {
 
       const busca = await fetch(
@@ -97,6 +96,7 @@ export default async function handler(req, res) {
       const pedido = pedidos[0];
 
       if (pedido?.whatsapp) {
+
         await fetch(
           "https://carimbai-api.vercel.app/api/whatsapp/send",
           {
@@ -111,13 +111,15 @@ export default async function handler(req, res) {
             })
           }
         );
+
       }
     }
 
     return res.status(200).json({ ok: true });
 
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error(error);
+
     return res.status(500).json({
       error: "Erro webhook"
     });
