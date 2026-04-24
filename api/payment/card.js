@@ -81,9 +81,9 @@ export default async function handler(req, res) {
           "https://carimbai-api.vercel.app/api/payment/webhook",
 
         back_urls: {
-          success: "https://runtrix.com.br/pagamento/sucesso",
-          failure: "https://runtrix.com.br/pagamento/erro",
-          pending: "https://runtrix.com.br/pagamento/pendente"
+          success: "https://runtrix.com.br/carimbai/pagamento/sucesso",
+          failure: "https://runtrix.com.br/carimbai/pagamento/erro",
+          pending: "https://runtrix.com.br/carimbai/pagamento/pendente"
         },
 
         auto_return: "approved"
