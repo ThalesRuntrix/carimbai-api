@@ -64,8 +64,17 @@ export default async function handler(req, res) {
         ],
 
         payer: {
-          email: cliente.email || "cliente@email.com",
-          name: cliente.nome || "Cliente"
+          email: cliente.email || "test_user_xxxxx@testuser.com",
+          first_name: cliente.nome?.split(" ")[0] || "Cliente",
+          last_name: cliente.nome?.split(" ").slice(1).join(" ") || "Teste",
+          identification: {
+            type: "CPF",
+            number: cliente.cpf || "19119119100"
+          }
+        },
+
+        payment_methods: {
+          installments: 12
         },
 
         notification_url:
