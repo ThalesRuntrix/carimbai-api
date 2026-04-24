@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-  // CORS
   res.setHeader("Access-Control-Allow-Origin", "https://runtrix.com.br");
   res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -23,25 +22,12 @@ export default async function handler(req, res) {
       });
     }
 
-    // limpa telefone
     const numero = telefone.replace(/\D/g, "");
 
-    // Brasil com DDI
     const phone =
       numero.startsWith("55")
         ? numero
         : `55${numero}`;
-
-    const mensagem =
-`Olá ${nome || "cliente"} 👋
-
-Recebemos o pagamento do seu pedido *${pedido_codigo}* ✅
-
-Agora envie por aqui as informações que serão gravadas no produto.
-
-Se preferir, pode mandar foto, logo ou arte.
-
-Obrigado pela compra 🙏`;
 
     const response = await fetch(
       `https://graph.facebook.com/v25.0/${process.env.WHATSAPP_PHONE_ID}/messages`,
@@ -54,9 +40,27 @@ Obrigado pela compra 🙏`;
         body: JSON.stringify({
           messaging_product: "whatsapp",
           to: phone,
-          type: "text",
-          text: {
-            body: mensagem
+          type: "template",
+          template: {
+            name: "pedido_aprovado",
+            language: {
+              code: "pt_BR"
+            },
+            components: [
+              {
+                type: "body",
+                parameters: [
+                  {
+                    type: "text",
+                    text: nome || "Cliente"
+                  },
+                  {
+                    type: "text",
+                    text: pedido_codigo
+                  }
+                ]
+              }
+            ]
           }
         })
       }
@@ -68,7 +72,7 @@ Obrigado pela compra 🙏`;
       console.error(data);
 
       return res.status(500).json({
-        error: "Erro ao enviar WhatsApp",
+        error: "Erro WhatsApp",
         details: data
       });
     }
