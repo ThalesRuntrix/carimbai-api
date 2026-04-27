@@ -83,7 +83,7 @@ export default async function handler(req, res) {
     if (status === "approved") {
 
       const busca = await fetch(
-        `${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}&select=*`,
+        `${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}&select=*,clientes(*)`,
         {
           headers: {
             apikey: process.env.SUPABASE_KEY,
@@ -106,7 +106,7 @@ export default async function handler(req, res) {
             },
             body: JSON.stringify({
               telefone: pedido.whatsapp,
-              nome: pedido.nome,
+              nome: pedido.clientes?.nome || "Cliente",
               pedido_codigo: pedido.pedido_codigo
             })
           }
