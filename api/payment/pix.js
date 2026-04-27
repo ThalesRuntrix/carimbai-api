@@ -114,11 +114,13 @@ export default async function handler(req, res) {
           .transaction_data.qr_code_base64
     });
 
-  } catch (err) {
-    console.error(err);
+  } catch(err) {
+    console.error("ERRO PIX:", err);
+    console.error("CAUSE:", err.cause);
 
     return res.status(500).json({
-      error: "Erro ao gerar PIX"
+      error: err.message,
+      cause: err.cause
     });
   }
 }
