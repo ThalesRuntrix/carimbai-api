@@ -54,24 +54,25 @@ export default async function handler(req, res) {
       body: {
         transaction_amount: Number(pedido.total),
 
-        description:
-          `Pedido ${pedido.pedido_codigo}`,
+        description: `Pedido ${pedido.pedido_codigo}`,
 
         payment_method_id: "pix",
 
-        external_reference:
-          String(pedido.id),
+        external_reference: String(pedido.id),
 
         notification_url:
           "https://carimbai-api.vercel.app/api/payment/webhook",
 
         payer: {
-          email:
-            cliente.email ||
-            "cliente@email.com",
+          email: cliente.email,
+          first_name: cliente.nome?.split(" ")[0] || "Cliente",
+          last_name:
+            cliente.nome?.split(" ").slice(1).join(" ") || "Teste",
 
-          first_name:
-            cliente.nome || "Cliente"
+          identification: {
+            type: "CPF",
+            number: cliente.cpf
+          }
         }
       }
     });
