@@ -20,17 +20,16 @@ export default async function handler(req, res) {
     });
   }
 
-  console.log("BODY:", req.body);
-
   try {
 
+    const { pedido_id, formData } = req.body;
+
     const {
-      pedido_id,
       token,
       issuer_id,
       payment_method_id,
       installments
-    } = req.body;
+    } = formData || {};
 
     if (!pedido_id) {
       return res.status(400).json({ error:"pedido_id ausente" });
@@ -138,7 +137,8 @@ export default async function handler(req, res) {
 
   } catch (error) {
 
-    console.error(error);
+    console.log("ERRO MP:", error);
+    console.log("CAUSE:", error.cause);
 
     return res.status(500).json({
       error: "Erro ao processar pagamento"
