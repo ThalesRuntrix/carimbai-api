@@ -20,6 +20,8 @@ export default async function handler(req, res) {
     });
   }
 
+  console.log("BODY:", req.body);
+
   try {
 
     const {
@@ -30,9 +32,14 @@ export default async function handler(req, res) {
       installments
     } = req.body;
 
-    if (!pedido_id || !token) {
+    if (!pedido_id) {
+      return res.status(400).json({ error:"pedido_id ausente" });
+    }
+
+    if (!token) {
       return res.status(400).json({
-        error: "Dados inválidos"
+        error:"token ausente",
+        body:req.body
       });
     }
 
