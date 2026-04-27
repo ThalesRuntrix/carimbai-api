@@ -48,13 +48,12 @@ export default async function handler(req, res) {
       }
     );
 
-    const rows = await busca.json();
+   const pedidos = await busca.json();
+    const pedido = pedidos[0];
 
-    const pedido = rows[0];
-
-    if (!pedido) {
+    if(!pedido){
       return res.status(404).json({
-        error: "Pedido não encontrado"
+        error:"Pedido não encontrado"
       });
     }
 
