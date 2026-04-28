@@ -43,6 +43,9 @@ export default async function handler(req, res) {
             case "dev-approve":
                 return await devApprove(req, res);
 
+            case "satus":
+                return await getPaymentStatus(req, res);
+
             default:
                 return res.status(404).json({
                     error: "Ação inválida"
@@ -55,6 +58,20 @@ export default async function handler(req, res) {
             error: "Erro interno"
         });
     }
+}
+
+// =====================================================
+// STATUS
+// =====================================================
+async function getPaymentStatus(req, res) {
+    const { pedido_id } = req.body;
+    const busca = await fetch(
+     `${SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedido_id}&select=status_pagamento`
+   );
+
+   const rows = await busca.json();
+
+   return res.status(200).json(rows[0]);
 }
 
 // =====================================================
