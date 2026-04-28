@@ -66,12 +66,12 @@ export default async function handler(req, res) {
 async function getPaymentStatus(req, res) {
     const { pedido_id } = req.body;
     const busca = await fetch(
-     `${SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedido_id}&select=status_pagamento`
-   );
+        `${SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedido_id}&select=status_pagamento`
+    );
 
-   const rows = await busca.json();
+    const rows = await busca.json();
 
-   return res.status(200).json(rows[0]);
+    return res.status(200).json(rows[0]);
 }
 
 // =====================================================
@@ -121,7 +121,7 @@ async function gerarPix(req, res) {
 
     await atualizarPedido(pedido.id, {
         mp_payment_id: String(payment.id),
-        external_reference: String(pedido.id),
+        external_reference: String(pedido.pedido_codigo),
         mp_status: payment.status,
         mp_status_detail: payment.status_detail,
         mp_payment_type: payment.payment_type_id,
@@ -190,7 +190,7 @@ async function pagarCartao(req, res) {
 
     await atualizarPedido(pedido.id, {
         mp_payment_id: String(payment.id),
-        external_reference: String(pedido.id),
+        external_reference: String(pedido.pedido_codigo),
         mp_status: payment.status,
         mp_status_detail: payment.status_detail,
         mp_payment_type: payment.payment_type_id,
@@ -211,7 +211,7 @@ async function pagarCartao(req, res) {
 async function webhook(req, res) {
     try {
         const body = req.body;
-        
+
         if (body.type !== "payment") {
             return res.status(200).json({
                 ok: true
@@ -259,11 +259,11 @@ async function webhook(req, res) {
 
         // antifraude simples
         if (Number(payment.transaction_amount) !== Number(pedido.total)) {
-        console.error("Valor divergente", {
-            pedido: pedido.total,
-            pago: payment.transaction_amount
-        });
-        return res.status(200).json({ ok: true });
+            console.error("Valor divergente", {
+                pedido: pedido.total,
+                pago: payment.transaction_amount
+            });
+            return res.status(200).json({ ok: true });
         }
 
         // =====================================
@@ -273,9 +273,9 @@ async function webhook(req, res) {
         // =====================================
         if (
             pedido.status_pagamento ===
-                "approved" &&
+            "approved" &&
             String(pedido.mp_payment_id) ===
-                String(payment.id)
+            String(payment.id)
         ) {
             return res.status(200).json({
                 ok: true,
@@ -415,18 +415,30 @@ async function atualizarPedido(
     );
 }
 
-async function buscarPedidoPorCodigo(pedido_codigo) {
-    const response = await fetch(
-        `${process.env.SUPABASE_URL}/rest/v1/pedidos?pedido_codigo=eq.${pedido_codigo}&select=*`,
-        {
-            headers: {
-                apikey: process.env.SUPABASE_KEY,
-                Authorization: `Bearer ${process.env.SUPABASE_KEY}`
-            }
-        }
-    );
+async function buscarPedidoPorCodigo(
+    pedido_codigo
+) {
+    const codigo =
+        encodeURIComponent(
+            pedido_codigo
+        );
 
-    const data = await response.json();
+    const response =
+        await fetch(
+            `${process.env.SUPABASE_URL}/rest/v1/pedidos?pedido_codigo=eq.${codigo}&select=*`,
+            {
+                headers: {
+                    apikey:
+                        process.env.SUPABASE_KEY,
+                    Authorization:
+                        `Bearer ${process.env.SUPABASE_KEY}`
+                }
+            }
+        );
+
+    const data =
+        await response.json();
+
     return data[0];
 }
 
