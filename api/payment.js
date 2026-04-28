@@ -206,7 +206,7 @@ async function pagarCartao(req, res) {
 }
 
 // =====================================================
-// WEBHOOK REAL
+// WEBHOOK
 // =====================================================
 async function webhook(req, res) {
     const body = req.body;
@@ -246,16 +246,16 @@ async function webhook(req, res) {
     if (status === "approved") {
         await processarPagamentoAprovado({
             pedido_id: pedidoId,
-            mp_payment_id: paymentId
+            payment
         });
     } else {
-        await atualizarPedido(
-            pedidoId,
-            {
-                status_pagamento:
-                    status
-            }
-        );
+        await atualizarPedido(pedidoId, {
+            status_pagamento: status,
+            mp_status: payment.status,
+            mp_status_detail: payment.status_detail,
+            mp_payment_type: payment.payment_type_id,
+            mp_payment_method: payment.payment_method_id
+        });
     }
 
     return res.status(200).json({
