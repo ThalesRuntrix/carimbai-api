@@ -209,70 +209,127 @@ async function pagarCartao(req, res) {
 // WEBHOOK
 // =====================================================
 async function webhook(req, res) {
-    const body = req.body;
+    try {
+        const body = req.body;
 
-    if (body.type !== "payment") {
-        return res.status(200).json({
-            ok: true
-        });
-    }
+        // =====================================
+        // Validação básica do evento
+        // =====================================
+        if (body.type !== "payment") {
+            return res.status(200).json({
+                ok: true
+            });
+        }
 
-    const paymentId =
-        body.data?.id;
+        const paymentId = body.data?.id;
 
-    if (!paymentId) {
-        return res.status(200).json({
-            ok: true
-        });
-    }
+        if (!paymentId) {
+            return res.status(200).json({
+                ok: true
+            });
+        }
 
-    const payment =
-        await paymentApi.get({
+        // =====================================
+        // Busca pagamento real no Mercado Pago
+        // =====================================
+        const payment = await paymentApi.get({
             id: paymentId
         });
 
-    const status =
-        payment.status;
+        const status = payment.status;
+        const pedidoCodigo =
+            payment.external_reference;
 
-    const pedidoCodigo = payment.external_reference;
+        if (!pedidoCodigo) {
+            return res.status(200).json({
+                ok: true
+            });
+        }
 
-    if (!pedidoCodigo) {
-        return res.status(200).json({ ok: true });
-    }
+        // =====================================
+        // Localiza pedido interno
+        // =====================================
+        const pedido =
+            await buscarPedidoPorCodigo(
+                pedidoCodigo
+            );
 
-    const pedido = await buscarPedidoPorCodigo(pedidoCodigo);
+        if (!pedido) {
+            return res.status(200).json({
+                ok: true
+            });
+        }
 
-    if (!pedido) {
-        return res.status(200).json({ ok: true });
-    }
+        // =====================================
+        // IDEMPOTÊNCIA:
+        // se já aprovado com mesmo payment_id
+        // ignora repetição
+        // =====================================
+        if (
+            pedido.status_pagamento ===
+                "approved" &&
+            String(pedido.mp_payment_id) ===
+                String(payment.id)
+        ) {
+            return res.status(200).json({
+                ok: true,
+                duplicate: true
+            });
+        }
 
-    // IDEMPOTÊNCIA
-    if (
-        pedido.status_pagamento === "approved" &&
-        String(pedido.mp_payment_id) === String(payment.id)
-    ) {
+        // =====================================
+        // PAGAMENTO APROVADO
+        // =====================================
+        if (status === "approved") {
+            await processarPagamentoAprovado({
+                pedido_id: pedido.id,
+                payment
+            });
+
+            return res.status(200).json({
+                ok: true,
+                processed: true
+            });
+        }
+
+        // =====================================
+        // OUTROS STATUS
+        // =====================================
+        await atualizarPedido(
+            pedido.id,
+            {
+                status_pagamento:
+                    status,
+                mp_payment_id:
+                    String(payment.id),
+                external_reference:
+                    payment.external_reference,
+                mp_status:
+                    payment.status,
+                mp_status_detail:
+                    payment.status_detail,
+                mp_payment_type:
+                    payment.payment_type_id,
+                mp_payment_method:
+                    payment.payment_method_id
+            }
+        );
+
         return res.status(200).json({
             ok: true,
-            duplicate: true
+            updated: true
+        });
+
+    } catch (error) {
+        console.error(
+            "Erro webhook Mercado Pago:",
+            error
+        );
+
+        return res.status(200).json({
+            ok: true
         });
     }
-
-    if (status === "approved") {
-        await processarPagamentoAprovado({
-            pedido_id: pedido.id,
-            payment
-        });
-    } else {
-        await atualizarPedido(pedido.id, {
-            status_pagamento: status,
-            mp_status: payment.status,
-            mp_status_detail: payment.status_detail,
-            mp_payment_type: payment.payment_type_id,
-            mp_payment_method: payment.payment_method_id
-        });
-    }
-
-    return res.status(200).json({ ok: true });
 }
 
 // =====================================================
