@@ -234,22 +234,36 @@ async function webhook(req, res) {
     const status =
         payment.status;
 
-    const pedidoId =
-        payment.external_reference;
+    const pedidoCodigo = payment.external_reference;
 
-    if (!pedidoId) {
+    if (!pedidoCodigo) {
+        return res.status(200).json({ ok: true });
+    }
+
+    const pedido = await buscarPedidoPorCodigo(pedidoCodigo);
+
+    if (!pedido) {
+        return res.status(200).json({ ok: true });
+    }
+
+    // IDEMPOTÊNCIA
+    if (
+        pedido.status_pagamento === "approved" &&
+        String(pedido.mp_payment_id) === String(payment.id)
+    ) {
         return res.status(200).json({
-            ok: true
+            ok: true,
+            duplicate: true
         });
     }
 
     if (status === "approved") {
         await processarPagamentoAprovado({
-            pedido_id: pedidoId,
+            pedido_id: pedido.id,
             payment
         });
     } else {
-        await atualizarPedido(pedidoId, {
+        await atualizarPedido(pedido.id, {
             status_pagamento: status,
             mp_status: payment.status,
             mp_status_detail: payment.status_detail,
@@ -258,9 +272,7 @@ async function webhook(req, res) {
         });
     }
 
-    return res.status(200).json({
-        ok: true
-    });
+    return res.status(200).json({ ok: true });
 }
 
 // =====================================================
@@ -338,6 +350,21 @@ async function atualizarPedido(
             body: JSON.stringify(body)
         }
     );
+}
+
+async function buscarPedidoPorCodigo(pedido_codigo) {
+    const response = await fetch(
+        `${process.env.SUPABASE_URL}/rest/v1/pedidos?pedido_codigo=eq.${pedido_codigo}&select=*`,
+        {
+            headers: {
+                apikey: process.env.SUPABASE_KEY,
+                Authorization: `Bearer ${process.env.SUPABASE_KEY}`
+            }
+        }
+    );
+
+    const data = await response.json();
+    return data[0];
 }
 
 function montarPayer(
