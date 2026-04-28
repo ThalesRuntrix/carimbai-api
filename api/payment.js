@@ -190,8 +190,12 @@ async function pagarCartao(req, res) {
 
     await atualizarPedido(pedido.id, {
         mp_payment_id: String(payment.id),
-        status_pagamento:
-            payment.status
+        external_reference: String(pedido.id),
+        mp_status: payment.status,
+        mp_status_detail: payment.status_detail,
+        mp_payment_type: payment.payment_type_id,
+        mp_payment_method: payment.payment_method_id,
+        status_pagamento: payment.status
     });
 
     return res.status(200).json({
