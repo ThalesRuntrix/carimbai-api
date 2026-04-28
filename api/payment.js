@@ -106,7 +106,7 @@ async function gerarPix(req, res) {
             payment_method_id: "pix",
 
             external_reference:
-                String(pedido.id),
+                String(pedido.pedido_codigo),
 
             notification_url:
                 "https://carimbai-api.vercel.app/api/payment?action=webhook",
@@ -179,7 +179,7 @@ async function pagarCartao(req, res) {
                 Number(installments),
 
             external_reference:
-                String(pedido.id),
+                String(pedido.pedido_codigo),
 
             notification_url:
                 "https://carimbai-api.vercel.app/api/payment?action=webhook",
@@ -278,8 +278,15 @@ async function devApprove(req, res) {
 
     await processarPagamentoAprovado({
         pedido_id,
-        mp_payment_id:
-            "DEV_" + Date.now()
+        payment: {
+            id: "DEV_" + Date.now(),
+            external_reference: String(pedido_id),
+            status: "approved",
+            status_detail: "accredited",
+            payment_type_id: "dev",
+            payment_method_id: "dev",
+            date_approved: new Date().toISOString()
+        }
     });
 
     return res.status(200).json({
