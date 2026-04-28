@@ -210,21 +210,33 @@ async function pagarCartao(req, res) {
 // =====================================================
 async function webhook(req, res) {
     try {
-        const body = req.body;
 
-        if (body.type !== "payment") {
-            return res.status(200).json({
-                ok: true
-            });
+        console.log("WEBHOOK BODY:", req.body);
+        console.log("WEBHOOK QUERY:", req.query);
+
+        const body = req.body || {};
+
+        const tipo =
+        body.type ||
+        req.query.topic ||
+        body.topic;
+
+        if (tipo !== "payment") {
+        return res.status(200).json({ ok: true });
         }
 
-        const paymentId = body.data?.id;
+        const paymentId =
+        body.data?.id ||
+        body.id ||
+        req.query["data.id"] ||
+        req.query.id;
 
         if (!paymentId) {
-            return res.status(200).json({
-                ok: true
-            });
+        console.log("SEM PAYMENT ID");
+        return res.status(200).json({ ok: true });
         }
+
+        console.log("PAYMENT ID:", paymentId);
 
         // =====================================
         // Busca pagamento real no Mercado Pago
