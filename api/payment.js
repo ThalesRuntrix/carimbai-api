@@ -233,6 +233,12 @@ async function webhook(req, res) {
             id: paymentId
         });
 
+        //LOGS TEST
+        console.log("PAYMENT GET:", payment);
+        const dados = payment.response || payment;
+        console.log("DADOS:", dados);
+        console.log("STATUS:", dados.status);
+
         const status = payment.status;
         const pedidoCodigo =
             payment.external_reference;
