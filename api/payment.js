@@ -327,13 +327,9 @@ async function webhook(req, res) {
         });
 
     } catch (error) {
-        console.error(
-            "Erro webhook Mercado Pago:",
-            error
-        );
-
-        return res.status(200).json({
-            ok: true
+        console.error("Erro webhook:", error.stack || error);
+        return res.status(500).json({
+            error: true
         });
     }
 }
