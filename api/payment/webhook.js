@@ -1,5 +1,6 @@
 import client from "../../lib/mercadoPago.js";
 import { Payment } from "mercadopago";
+import { processarPagamentoAprovado } from "../../lib/processarPagamentoAprovado.js";
 
 const paymentApi = new Payment(client);
 
@@ -60,60 +61,34 @@ export default async function handler(req, res) {
       cancelledAt = new Date().toISOString();
     }
 
-    await fetch(
-      `${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}`,
-      {
-        method: "PATCH",
-        headers: {
-          apikey: process.env.SUPABASE_KEY,
-          Authorization: `Bearer ${process.env.SUPABASE_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          status_pagamento: status,
-          status_pedido: statusPedido,
-          mp_payment_id: String(paymentId),
-          paid_at: paidAt,
-          cancelled_at: cancelledAt
-        })
-      }
-    );
-
-    // WHATSAPP AUTOMÁTICO
     if (status === "approved") {
 
-      const busca = await fetch(
-        `${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}&select=*,clientes(*)`,
-        {
-          headers: {
-            apikey: process.env.SUPABASE_KEY,
-            Authorization: `Bearer ${process.env.SUPABASE_KEY}`
-          }
-        }
-      );
+  await processarPagamentoAprovado({
+    pedido_id: pedidoId,
+    mp_payment_id: paymentId
+  });
 
-      const pedidos = await busca.json();
-      const pedido = pedidos[0];
+} else {
 
-      if (pedido?.whatsapp) {
-
-        await fetch(
-          "https://carimbai-api.vercel.app/api/whatsapp/send",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              telefone: pedido.whatsapp,
-              nome: pedido.clientes?.nome || "Cliente",
-              pedido_codigo: pedido.pedido_codigo
-            })
-          }
-        );
-
-      }
+  await fetch(
+    `${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}`,
+    {
+      method: "PATCH",
+      headers: {
+        apikey: process.env.SUPABASE_KEY,
+        Authorization: `Bearer ${process.env.SUPABASE_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        status_pagamento: status,
+        status_pedido: statusPedido,
+        mp_payment_id: String(paymentId),
+        cancelled_at: cancelledAt
+      })
     }
+  );
+
+}
 
     return res.status(200).json({ ok: true });
 
