@@ -283,10 +283,14 @@ async function webhook(req, res) {
             });
         }
 
+        //LOGS TEST
+        console.log("STATUS PAYMENT:", status);
+        console.log("PAYMENT RAW:", payment);
+
         // =====================================
         // PAGAMENTO APROVADO
         // =====================================
-        if (status === "approved") {
+        if (status === "approved") {            
             await processarPagamentoAprovado({
                 pedido_id: pedido.id,
                 payment
