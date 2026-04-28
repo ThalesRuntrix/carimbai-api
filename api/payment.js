@@ -43,7 +43,7 @@ export default async function handler(req, res) {
             case "dev-approve":
                 return await devApprove(req, res);
 
-            case "satus":
+            case "status":
                 return await getPaymentStatus(req, res);
 
             default:
