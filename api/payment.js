@@ -211,10 +211,7 @@ async function pagarCartao(req, res) {
 async function webhook(req, res) {
     try {
         const body = req.body;
-
-        // =====================================
-        // Validação básica do evento
-        // =====================================
+        
         if (body.type !== "payment") {
             return res.status(200).json({
                 ok: true
@@ -258,6 +255,15 @@ async function webhook(req, res) {
             return res.status(200).json({
                 ok: true
             });
+        }
+
+        // antifraude simples
+        if (Number(payment.transaction_amount) !== Number(pedido.total)) {
+        console.error("Valor divergente", {
+            pedido: pedido.total,
+            pago: payment.transaction_amount
+        });
+        return res.status(200).json({ ok: true });
         }
 
         // =====================================
