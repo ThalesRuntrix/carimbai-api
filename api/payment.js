@@ -210,59 +210,105 @@ async function pagarCartao(req, res) {
 // =====================================================
 async function webhook(req, res) {
     try {
-
+        // =====================================
+        // LOG INICIAL
+        // =====================================
         console.log("WEBHOOK BODY:", req.body);
         console.log("WEBHOOK QUERY:", req.query);
 
         const body = req.body || {};
 
-        const tipo =
-        body.type ||
-        req.query.topic ||
-        body.topic;
-
-        if (tipo !== "payment") {
-        return res.status(200).json({ ok: true });
-        }
-
-        const paymentId =
-        body.data?.id ||
-        body.id ||
-        req.query["data.id"] ||
-        req.query.id;
-
-        if (!paymentId) {
-        console.log("SEM PAYMENT ID");
-        return res.status(200).json({ ok: true });
-        }
-
-        console.log("PAYMENT ID:", paymentId);
-
         // =====================================
-        // Busca pagamento real no Mercado Pago
+        // Detecta tipo do evento
+        // Compatível webhook novo e legado
         // =====================================
-        const payment = await paymentApi.get({
-            id: paymentId
-        });
+        const eventType =
+            body.type ||
+            body.topic ||
+            req.query.type ||
+            req.query.topic;
 
-        //LOGS TEST
-        console.log("PAYMENT GET:", payment);
-        const dados = payment.response || payment;
-        console.log("DADOS:", dados);
-        console.log("STATUS:", dados.status);
+        if (eventType !== "payment") {
+            console.log(
+                "Webhook ignorado. Tipo:",
+                eventType
+            );
 
-        const status = payment.status;
-        const pedidoCodigo =
-            payment.external_reference;
-
-        if (!pedidoCodigo) {
             return res.status(200).json({
-                ok: true
+                ok: true,
+                ignored: true
             });
         }
 
         // =====================================
-        // Localiza pedido interno
+        // Captura payment id
+        // =====================================
+        const paymentId =
+            body.data?.id ||
+            body.id ||
+            req.query["data.id"] ||
+            req.query.id;
+
+        if (!paymentId) {
+            console.log(
+                "Webhook sem paymentId"
+            );
+
+            return res.status(200).json({
+                ok: true,
+                no_payment_id: true
+            });
+        }
+
+        console.log(
+            "Payment ID:",
+            paymentId
+        );
+
+        // =====================================
+        // Busca pagamento real Mercado Pago
+        // =====================================
+        const paymentResponse =
+            await paymentApi.get({
+                id: paymentId
+            });
+
+        const payment =
+            paymentResponse.response ||
+            paymentResponse;
+
+        console.log(
+            "Payment status:",
+            payment.status
+        );
+
+        // =====================================
+        // Dados principais
+        // =====================================
+        const status =
+            payment.status;
+
+        const pedidoCodigo =
+            payment.external_reference;
+
+        if (!pedidoCodigo) {
+            console.log(
+                "Sem external_reference"
+            );
+
+            return res.status(200).json({
+                ok: true,
+                no_external_reference: true
+            });
+        }
+
+        console.log(
+            "Pedido código:",
+            pedidoCodigo
+        );
+
+        // =====================================
+        // Busca pedido interno
         // =====================================
         const pedido =
             await buscarPedidoPorCodigo(
@@ -270,45 +316,79 @@ async function webhook(req, res) {
             );
 
         if (!pedido) {
+            console.log(
+                "Pedido não encontrado:",
+                pedidoCodigo
+            );
+
             return res.status(200).json({
-                ok: true
+                ok: true,
+                pedido_not_found: true
             });
         }
 
-        // antifraude simples
-        if (Number(payment.transaction_amount) !== Number(pedido.total)) {
-            console.error("Valor divergente", {
-                pedido: pedido.total,
-                pago: payment.transaction_amount
+        console.log(
+            "Pedido localizado:",
+            pedido.id
+        );
+
+        // =====================================
+        // Antifraude simples:
+        // valor pago precisa bater
+        // =====================================
+        if (
+            Number(
+                payment.transaction_amount
+            ) !==
+            Number(pedido.total)
+        ) {
+            console.error(
+                "Valor divergente",
+                {
+                    pedido:
+                        pedido.total,
+                    pago:
+                        payment.transaction_amount
+                }
+            );
+
+            return res.status(200).json({
+                ok: true,
+                amount_mismatch: true
             });
-            return res.status(200).json({ ok: true });
         }
 
         // =====================================
-        // IDEMPOTÊNCIA:
-        // se já aprovado com mesmo payment_id
+        // IDEMPOTÊNCIA
+        // se já aprovado com mesmo payment id
         // ignora repetição
         // =====================================
         if (
             pedido.status_pagamento ===
-            "approved" &&
-            String(pedido.mp_payment_id) ===
-            String(payment.id)
+                "approved" &&
+            String(
+                pedido.mp_payment_id
+            ) ===
+                String(payment.id)
         ) {
+            console.log(
+                "Webhook duplicado ignorado"
+            );
+
             return res.status(200).json({
                 ok: true,
                 duplicate: true
             });
         }
 
-        //LOGS TEST
-        console.log("STATUS PAYMENT:", status);
-        console.log("PAYMENT RAW:", payment);
-
         // =====================================
         // PAGAMENTO APROVADO
         // =====================================
-        if (status === "approved") {            
+        if (status === "approved") {
+            console.log(
+                "Pagamento aprovado. Processando..."
+            );
+
             await processarPagamentoAprovado({
                 pedido_id: pedido.id,
                 payment
@@ -323,6 +403,11 @@ async function webhook(req, res) {
         // =====================================
         // OUTROS STATUS
         // =====================================
+        console.log(
+            "Atualizando status:",
+            status
+        );
+
         await atualizarPedido(
             pedido.id,
             {
@@ -349,8 +434,14 @@ async function webhook(req, res) {
         });
 
     } catch (error) {
-        console.error("Erro webhook:", error.stack || error);
-        return res.status(500).json({
+        console.error(
+            "ERRO WEBHOOK MERCADO PAGO:",
+            error?.stack || error
+        );
+
+        // sempre responder 200 evita retry infinito
+        return res.status(200).json({
+            ok: true,
             error: true
         });
     }
