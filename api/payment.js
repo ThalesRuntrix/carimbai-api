@@ -121,6 +121,11 @@ async function gerarPix(req, res) {
 
     await atualizarPedido(pedido.id, {
         mp_payment_id: String(payment.id),
+        external_reference: String(pedido.id),
+        mp_status: payment.status,
+        mp_status_detail: payment.status_detail,
+        mp_payment_type: payment.payment_type_id,
+        mp_payment_method: payment.payment_method_id,
         pix_codigo: qr.qr_code,
         pix_qr_code: qr.qr_code_base64
     });
