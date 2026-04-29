@@ -210,18 +210,9 @@ async function pagarCartao(req, res) {
 // =====================================================
 async function webhook(req, res) {
     try {
-        // =====================================
-        // LOG INICIAL
-        // =====================================
-        console.log("WEBHOOK BODY:", req.body);
-        console.log("WEBHOOK QUERY:", req.query);
-
+        
         const body = req.body || {};
-
-        // =====================================
-        // Detecta tipo do evento
-        // Compatível webhook novo e legado
-        // =====================================
+        
         const eventType =
             body.type ||
             body.topic ||
@@ -239,10 +230,7 @@ async function webhook(req, res) {
                 ignored: true
             });
         }
-
-        // =====================================
-        // Captura payment id
-        // =====================================
+        
         const paymentId =
             body.data?.id ||
             body.id ||
@@ -259,11 +247,6 @@ async function webhook(req, res) {
                 no_payment_id: true
             });
         }
-
-        console.log(
-            "Payment ID:",
-            paymentId
-        );
 
         // =====================================
         // Busca pagamento real Mercado Pago
@@ -302,11 +285,6 @@ async function webhook(req, res) {
             });
         }
 
-        console.log(
-            "Pedido código:",
-            pedidoCodigo
-        );
-
         // =====================================
         // Busca pedido interno
         // =====================================
@@ -326,11 +304,6 @@ async function webhook(req, res) {
                 pedido_not_found: true
             });
         }
-
-        console.log(
-            "Pedido localizado:",
-            pedido.id
-        );
 
         // =====================================
         // Antifraude simples:
@@ -399,11 +372,7 @@ async function webhook(req, res) {
         // =====================================
         // OUTROS STATUS
         // =====================================
-        console.log(
-            "Atualizando status:",
-            status
-        );
-
+        
         await atualizarPedido(
             pedido.id,
             {
@@ -420,7 +389,7 @@ async function webhook(req, res) {
                 mp_payment_type:
                     payment.payment_type_id,
                 mp_payment_method:
-                    payment.payment_method_id
+                    payment.payment_method_id,
             }
         );
 

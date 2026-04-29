@@ -95,7 +95,7 @@ export default async function handler(req, res) {
         $1, 
         $2,
         $3, $4, $5, $6, $7, $8, $9,
-        $10, $11, $12, $13, 'novo', 'pending', $14, $15, $16
+        $10, $11, $12, $13, 'aguardando_pagamento', 'pending', $14, $15, $16
       )
       RETURNING id, pedido_codigo`,
       [
