@@ -157,10 +157,10 @@ async function pagarCartao(req, res) {
                 error: "Dados inválidos"
             });
         }
-
-        //LOG 1 e 2
-        console.log("Vai Tentar Buscar Pedido:", pedido);
+        
         const pedido = await buscarPedido(pedido_id);
+        
+        //LOG        
         console.log("Buscou Pedido:", pedido);
 
         if (!pedido) {
@@ -193,7 +193,7 @@ async function pagarCartao(req, res) {
             }
         });
 
-        //LOG 3
+        //LOG
         console.log("Payment Criado:", payment);
 
         await atualizarPedido(pedido.id, {
@@ -206,7 +206,7 @@ async function pagarCartao(req, res) {
             status_pagamento: "pending"
         });
 
-        //LOG 4
+        //LOG
         console.log("Pedido Atualizado");
 
         return res.status(200).json({
