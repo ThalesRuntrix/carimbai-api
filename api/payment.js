@@ -141,68 +141,89 @@ async function gerarPix(req, res) {
 // CARTÃO BRICKS
 // =====================================================
 async function pagarCartao(req, res) {
-    const { pedido_id, formData } = req.body;
 
-    const {
-        token,
-        issuer_id,
-        payment_method_id,
-        installments
-    } = formData || {};
+    try {
+        const { pedido_id, formData } = req.body;
 
-    if (!pedido_id || !token) {
-        return res.status(400).json({
-            error: "Dados inválidos"
-        });
-    }
-
-    const pedido = await buscarPedido(pedido_id);
-
-    if (!pedido) {
-        return res.status(404).json({
-            error: "Pedido não encontrado"
-        });
-    }
-
-    const cliente = pedido.clientes || {};
-
-    const payment = await paymentApi.create({
-        body: {
-            transaction_amount:
-                Number(pedido.total),
-
+        const {
             token,
             issuer_id,
             payment_method_id,
+            installments
+        } = formData || {};
 
-            installments:
-                Number(installments),
-
-            external_reference:
-                String(pedido.pedido_codigo),
-
-            notification_url:
-                "https://carimbai-api.vercel.app/api/payment?action=webhook",
-
-            payer: montarPayer(cliente)
+        if (!pedido_id || !token) {
+            return res.status(400).json({
+                error: "Dados inválidos"
+            });
         }
-    });
 
-    await atualizarPedido(pedido.id, {
-        mp_payment_id: String(payment.id),
-        external_reference: String(pedido.pedido_codigo),
-        mp_status: payment.status,
-        mp_status_detail: payment.status_detail,
-        mp_payment_type: payment.payment_type_id,
-        mp_payment_method: payment.payment_method_id,
-        status_pagamento: "pending"
-    });
+        //LOG 1 e 2
+        console.log("Vai Tentar Buscar Pedido:", pedido);
+        const pedido = await buscarPedido(pedido_id);
+        console.log("Buscou Pedido:", pedido);
 
-    return res.status(200).json({
-        success: true,
-        id: payment.id,
-        status: payment.status
-    });
+        if (!pedido) {
+            return res.status(404).json({
+                error: "Pedido não encontrado"
+            });
+        }
+
+        const cliente = pedido.clientes || {};
+
+        const payment = await paymentApi.create({
+            body: {
+                transaction_amount:
+                    Number(pedido.total),
+
+                token,
+                issuer_id,
+                payment_method_id,
+
+                installments:
+                    Number(installments),
+
+                external_reference:
+                    String(pedido.pedido_codigo),
+
+                notification_url:
+                    "https://carimbai-api.vercel.app/api/payment?action=webhook",
+
+                payer: montarPayer(cliente)
+            }
+        });
+
+        //LOG 3
+        console.log("Payment Criado:", payment);
+
+        await atualizarPedido(pedido.id, {
+            mp_payment_id: String(payment.id),
+            external_reference: String(pedido.pedido_codigo),
+            mp_status: payment.status,
+            mp_status_detail: payment.status_detail,
+            mp_payment_type: payment.payment_type_id,
+            mp_payment_method: payment.payment_method_id,
+            status_pagamento: "pending"
+        });
+
+        //LOG 4
+        console.log("Pedido Atualizado");
+
+        return res.status(200).json({
+            success: true,
+            id: payment.id,
+            status: payment.status
+        });
+    } catch (error) {
+        console.error(
+            "ERRO pagarCartao:",
+            error?.stack || error
+        );
+
+        return res.status(500).json({
+            error: true
+        });
+    }
 }
 
 // =====================================================
@@ -210,9 +231,9 @@ async function pagarCartao(req, res) {
 // =====================================================
 async function webhook(req, res) {
     try {
-        
+
         const body = req.body || {};
-        
+
         const eventType =
             body.type ||
             body.topic ||
@@ -230,7 +251,7 @@ async function webhook(req, res) {
                 ignored: true
             });
         }
-        
+
         const paymentId =
             body.data?.id ||
             body.id ||
@@ -372,7 +393,7 @@ async function webhook(req, res) {
         // =====================================
         // OUTROS STATUS
         // =====================================
-        
+
         await atualizarPedido(
             pedido.id,
             {
