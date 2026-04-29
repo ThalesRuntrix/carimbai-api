@@ -160,8 +160,6 @@ async function pagarCartao(req, res) {
         
         const pedido = await buscarPedido(pedido_id);
         
-        //LOG        
-        console.log("Buscou Pedido:", pedido);
 
         if (!pedido) {
             return res.status(404).json({
@@ -193,9 +191,6 @@ async function pagarCartao(req, res) {
             }
         });
 
-        //LOG
-        console.log("Payment Criado:", payment);
-
         await atualizarPedido(pedido.id, {
             mp_payment_id: String(payment.id),
             external_reference: String(pedido.pedido_codigo),
@@ -205,9 +200,6 @@ async function pagarCartao(req, res) {
             mp_payment_method: payment.payment_method_id,
             status_pagamento: "pending"
         });
-
-        //LOG
-        console.log("Pedido Atualizado");
 
         return res.status(200).json({
             success: true,
@@ -378,10 +370,6 @@ async function webhook(req, res) {
                 ok: false
             });
         }
-
-        console.log(
-            "Webhook autenticado"
-        );
 
         // =====================================
         // Tipo evento
