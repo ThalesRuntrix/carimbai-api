@@ -195,7 +195,7 @@ async function pagarCartao(req, res) {
         mp_status_detail: payment.status_detail,
         mp_payment_type: payment.payment_type_id,
         mp_payment_method: payment.payment_method_id,
-        status_pagamento: payment.status
+        status_pagamento: "pending"
     });
 
     return res.status(200).json({
@@ -364,12 +364,8 @@ async function webhook(req, res) {
         // ignora repetição
         // =====================================
         if (
-            pedido.status_pagamento ===
-                "approved" &&
-            String(
-                pedido.mp_payment_id
-            ) ===
-                String(payment.id)
+            pedido.paid_at &&
+            String(pedido.mp_payment_id) === String(payment.id)
         ) {
             console.log(
                 "Webhook duplicado ignorado"
