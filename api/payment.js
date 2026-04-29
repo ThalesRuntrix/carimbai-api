@@ -229,66 +229,185 @@ async function pagarCartao(req, res) {
 // =====================================================
 // WEBHOOK
 // =====================================================
+import crypto from "crypto";
+
 async function webhook(req, res) {
     try {
+        // =====================================
+        // CONFIG
+        // =====================================
+        const SECRET =
+            process.env.MP_WEBHOOK_SECRET;
 
-        const body = req.body || {};
-
-        const eventType =
-            body.type ||
-            body.topic ||
-            req.query.type ||
-            req.query.topic;
-
-        if (eventType !== "payment") {
-            console.log(
-                "Webhook ignorado. Tipo:",
-                eventType
+        if (!SECRET) {
+            console.error(
+                "MP_WEBHOOK_SECRET não configurado"
             );
 
-            return res.status(200).json({
-                ok: true,
-                ignored: true
+            return res.status(500).json({
+                ok: false
             });
         }
 
+        // =====================================
+        // LOGS INICIAIS
+        // =====================================
+        console.log(
+            "WEBHOOK BODY:",
+            req.body
+        );
+
+        console.log(
+            "WEBHOOK HEADERS:",
+            req.headers
+        );
+
+        // =====================================
+        // ASSINATURA HEADER
+        // Mercado Pago envia:
+        // x-signature:
+        // ts=123456,v1=hash
+        // =====================================
+        const signature =
+            req.headers["x-signature"];
+
+        const requestId =
+            req.headers["x-request-id"];
+
+        if (!signature) {
+            console.warn(
+                "Webhook sem assinatura"
+            );
+
+            return res.status(401).json({
+                ok: false
+            });
+        }
+
+        // =====================================
+        // Parse assinatura
+        // =====================================
+        const parts =
+            signature.split(",");
+
+        let ts = null;
+        let hash = null;
+
+        for (const item of parts) {
+            const [k, v] =
+                item.trim().split("=");
+
+            if (k === "ts") ts = v;
+            if (k === "v1") hash = v;
+        }
+
+        if (!ts || !hash) {
+            console.warn(
+                "Assinatura inválida"
+            );
+
+            return res.status(401).json({
+                ok: false
+            });
+        }
+
+        // =====================================
+        // Anti replay (5 min)
+        // =====================================
+        const now =
+            Math.floor(Date.now() / 1000);
+
+        const diff =
+            Math.abs(now - Number(ts));
+
+        if (diff > 300) {
+            console.warn(
+                "Webhook expirado"
+            );
+
+            return res.status(401).json({
+                ok: false
+            });
+        }
+
+        // =====================================
+        // PAYMENT ID
+        // =====================================
         const paymentId =
-            body.data?.id ||
-            body.id ||
+            req.body?.data?.id ||
             req.query["data.id"] ||
             req.query.id;
 
         if (!paymentId) {
-            console.log(
-                "Webhook sem paymentId"
-            );
-
             return res.status(200).json({
-                ok: true,
-                no_payment_id: true
+                ok: true
             });
         }
 
         // =====================================
-        // Busca pagamento real Mercado Pago
+        // TEMPLATE OFICIAL MP
+        // id:{data.id};request-id:{x-request-id};ts:{ts};
         // =====================================
-        const paymentResponse =
+        const manifest =
+            `id:${paymentId};request-id:${requestId};ts:${ts};`;
+
+        const generated =
+            crypto
+                .createHmac(
+                    "sha256",
+                    SECRET
+                )
+                .update(manifest)
+                .digest("hex");
+
+        // =====================================
+        // Compare seguro
+        // =====================================
+        const valid =
+            crypto.timingSafeEqual(
+                Buffer.from(generated),
+                Buffer.from(hash)
+            );
+
+        if (!valid) {
+            console.warn(
+                "Assinatura inválida"
+            );
+
+            return res.status(401).json({
+                ok: false
+            });
+        }
+
+        console.log(
+            "Webhook autenticado"
+        );
+
+        // =====================================
+        // Tipo evento
+        // =====================================
+        const eventType =
+            req.body?.type ||
+            req.query.type;
+
+        if (eventType !== "payment") {
+            return res.status(200).json({
+                ok: true
+            });
+        }
+
+        // =====================================
+        // Busca pagamento oficial MP
+        // =====================================
+        const response =
             await paymentApi.get({
                 id: paymentId
             });
 
         const payment =
-            paymentResponse.response ||
-            paymentResponse;
+            response.response ||
+            response;
 
-        console.log(
-            "Payment status:",
-            payment.status
-        );
-
-        // =====================================
-        // Dados principais
-        // =====================================
         const status =
             payment.status;
 
@@ -296,13 +415,8 @@ async function webhook(req, res) {
             payment.external_reference;
 
         if (!pedidoCodigo) {
-            console.log(
-                "Sem external_reference"
-            );
-
             return res.status(200).json({
-                ok: true,
-                no_external_reference: true
+                ok: true
             });
         }
 
@@ -315,20 +429,13 @@ async function webhook(req, res) {
             );
 
         if (!pedido) {
-            console.log(
-                "Pedido não encontrado:",
-                pedidoCodigo
-            );
-
             return res.status(200).json({
-                ok: true,
-                pedido_not_found: true
+                ok: true
             });
         }
 
         // =====================================
-        // Antifraude simples:
-        // valor pago precisa bater
+        // Validação valor
         // =====================================
         if (
             Number(
@@ -337,48 +444,37 @@ async function webhook(req, res) {
             Number(pedido.total)
         ) {
             console.error(
-                "Valor divergente",
-                {
-                    pedido:
-                        pedido.total,
-                    pago:
-                        payment.transaction_amount
-                }
+                "Valor divergente"
             );
 
             return res.status(200).json({
-                ok: true,
-                amount_mismatch: true
+                ok: true
             });
         }
 
         // =====================================
         // IDEMPOTÊNCIA
-        // se já aprovado com mesmo payment id
-        // ignora repetição
         // =====================================
         if (
             pedido.paid_at &&
-            String(pedido.mp_payment_id) === String(payment.id)
+            String(
+                pedido.mp_payment_id
+            ) ===
+                String(payment.id)
         ) {
             console.log(
-                "Webhook duplicado ignorado"
+                "Webhook duplicado"
             );
 
             return res.status(200).json({
-                ok: true,
-                duplicate: true
+                ok: true
             });
         }
 
         // =====================================
-        // PAGAMENTO APROVADO
+        // APPROVED
         // =====================================
         if (status === "approved") {
-            console.log(
-                "Pagamento aprovado. Processando..."
-            );
-
             await processarPagamentoAprovado({
                 pedido_id: pedido.id,
                 payment
@@ -393,7 +489,6 @@ async function webhook(req, res) {
         // =====================================
         // OUTROS STATUS
         // =====================================
-
         await atualizarPedido(
             pedido.id,
             {
@@ -410,7 +505,7 @@ async function webhook(req, res) {
                 mp_payment_type:
                     payment.payment_type_id,
                 mp_payment_method:
-                    payment.payment_method_id,
+                    payment.payment_method_id
             }
         );
 
@@ -421,14 +516,12 @@ async function webhook(req, res) {
 
     } catch (error) {
         console.error(
-            "ERRO WEBHOOK MERCADO PAGO:",
+            "ERRO WEBHOOK:",
             error?.stack || error
         );
 
-        // sempre responder 200 evita retry infinito
         return res.status(200).json({
-            ok: true,
-            error: true
+            ok: true
         });
     }
 }
