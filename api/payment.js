@@ -61,12 +61,7 @@ export default async function handler(req, res) {
     if (req.method === "OPTIONS") {
         return res.status(200).end();
     }
-
-    if (req.headers.origin !== "https://runtrix.com.br") {
-        console.log("LOG 1 FORBIDDEN: REQ. HEADER ORIGIN != RUNTRIX");
-        return res.status(403).json({ error: "Forbidden" });
-    }
-
+    
     const action = req.query.action;
 
     try {
@@ -108,8 +103,7 @@ export default async function handler(req, res) {
 
             case "dev-approve":
                 // 🔐 BLOQUEIA EM PRODUÇÃO
-                if (process.env.NODE_ENV === "production") {
-                    console.log("LOG 3 FORBIDDEN: NODE_ENV != PRODUCTION");
+                if (process.env.NODE_ENV === "production") {                    
                     return res.status(403).json({ error: "Forbidden" });
                 }
                 return await devApprove(req, res);
