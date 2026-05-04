@@ -62,6 +62,10 @@ export default async function handler(req, res) {
         return res.status(200).end();
     }
 
+    if (req.headers.origin !== "https://runtrix.com.br") {
+        return res.status(403).json({ error: "Forbidden" });
+    }
+
     const action = req.query.action;
 
     try {
@@ -322,15 +326,18 @@ async function webhook(req, res) {
         // =====================================
         // LOGS INICIAIS
         // =====================================
-        console.log(
+        if (process.env.NODE_ENV !== "production") {
+            console.log(
             "WEBHOOK BODY:",
             req.body
-        );
+            );
 
-        console.log(
-            "WEBHOOK HEADERS:",
-            req.headers
-        );
+            console.log(
+                "WEBHOOK HEADERS:",
+                req.headers
+            );
+        }
+        
 
         // =====================================
         // ASSINATURA HEADER

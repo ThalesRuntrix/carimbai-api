@@ -21,6 +21,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Método não permitido' });
   }
 
+  if (req.headers.origin !== "https://runtrix.com.br") {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+
   try {
     const { nome, categoria_id, preco, detalhes } = req.body;
 

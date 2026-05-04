@@ -20,8 +20,6 @@ export default async function handler(req, res) {
 
     const { cep } = body;
 
-    console.log("CEP recebido:", cep);
-
     // 🔥 validação
     if (!cep || cep.length !== 8) {
       return res.status(400).json({ error: "CEP inválido" });

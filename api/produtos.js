@@ -56,8 +56,6 @@ export default async function handler(req, res) {
 
     url += filtros;
 
-    console.log("URL FINAL:", url);
-
     const response = await fetch(url, {
       headers: {
         apikey: process.env.SUPABASE_KEY,
