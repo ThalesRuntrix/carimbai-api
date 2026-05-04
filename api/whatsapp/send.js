@@ -7,6 +7,17 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
+  // 🔒 PROTEÇÃO: TOKEN INTERNO
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || authHeader !== `Bearer ${process.env.INTERNAL_API_TOKEN}`) {
+    console.warn("Acesso não autorizado ao WhatsApp endpoint");
+    return res.status(401).json({
+      error: "unauthorized"
+    });
+  }
+
+
   if (req.method !== "POST") {
     return res.status(405).json({
       error: "Method not allowed"
@@ -20,9 +31,15 @@ export default async function handler(req, res) {
       return res.status(400).json({
         error: "Telefone obrigatório"
       });
-    }
+    }    
 
     const numero = telefone.replace(/\D/g, "");
+
+    if (numero.length < 10 || numero.length > 13) {
+      return res.status(400).json({
+        error: "Telefone inválido"
+      });
+    }
 
     const phone =
       numero.startsWith("55")
@@ -69,17 +86,15 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error(data);
+      console.error("Erro WhatsApp API: ", data);
 
       return res.status(500).json({
-        error: "Erro WhatsApp",
-        details: data
+        error: "Erro WhatsApp"
       });
     }
 
     return res.status(200).json({
-      success: true,
-      data
+      success: true,      
     });
 
   } catch (error) {
