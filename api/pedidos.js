@@ -1,6 +1,36 @@
 import { pool } from "../lib/db.js";
 import { formatarPedidoPayload } from "./util/formatarPedido.js";
 
+const rateLimitMap = new Map();
+
+function rateLimit(req, res, limit = 10, windowMs = 60000) {
+  const ip =
+    req.headers["x-forwarded-for"]?.split(",")[0] ||
+    req.socket?.remoteAddress ||
+    "unknown";
+
+  const now = Date.now();
+
+  if (!rateLimitMap.has(ip)) {
+    rateLimitMap.set(ip, []);
+  }
+
+  const timestamps = rateLimitMap.get(ip);
+
+  const recent = timestamps.filter(
+    (t) => now - t < windowMs
+  );
+
+  if (recent.length >= limit) {
+    return false;
+  }
+
+  recent.push(now);
+  rateLimitMap.set(ip, recent);
+
+  return true;
+}
+
 function send(res, status, data) {
   res.setHeader("Access-Control-Allow-Origin", "https://runtrix.com.br");
   res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS");
@@ -14,6 +44,14 @@ export default async function handler(req, res) {
     return send(res, 200, {});
   }
 
+  // 🔐 RATE LIMIT
+  if (!rateLimit(req, res)) {
+    return send(res, 429, {
+      error: "Você excedeu o limite de requisições. Tente novamente em instantes."
+    });
+  }
+
+
   if (req.method !== "POST") {
     return send(res, 405, { error: "Método não permitido" });
   }
@@ -22,12 +60,45 @@ export default async function handler(req, res) {
 
   try {
     const payload = formatarPedidoPayload(req.body);
-    const { cliente, endereco, itens, pagamento, frete, prazo, entrega, transportadora } = payload;
 
+    const {
+      cliente,
+      endereco,
+      itens,
+      pagamento,
+      frete,
+      prazo,
+      entrega,
+      transportadora
+    } = payload;
+
+    // ============================
+    // 🔒 VALIDAÇÕES BÁSICAS
+    // ============================
+
+    if (!cliente?.cpf || !cliente?.nome) {
+      return send(res, 400, { error: "Cliente inválido" });
+    }
+
+    if (!Array.isArray(itens) || itens.length === 0) {
+      return send(res, 400, { error: "Itens inválidos" });
+    }
+
+    if (itens.length > 20) {
+      return send(res, 400, { error: "Limite de itens excedido" });
+    }
+
+    if (!["pix", "cartao"].includes(pagamento)) {
+      return send(res, 400, { error: "Pagamento inválido" });
+    }
+
+    // ============================
+    // 🔥 TRANSACTION
+    // ============================
     await client.query("BEGIN");
 
     // ============================
-    // 🔥 1. CLIENTE
+    // 🔥 CLIENTE
     // ============================
     let clienteId;
 
@@ -43,17 +114,27 @@ export default async function handler(req, res) {
         `INSERT INTO clientes (nome, email, whatsapp, cpf)
          VALUES ($1, $2, $3, $4)
          RETURNING id`,
-        [cliente.nome, cliente.email, cliente.whatsapp, cliente.cpf]
+        [
+          cliente.nome,
+          cliente.email || null,
+          cliente.whatsapp || null,
+          cliente.cpf
+        ]
       );
       clienteId = novoCliente.rows[0].id;
     }
 
     // ============================
-    // 🔥 2. PRODUTOS + TOTAL
+    // 🔥 PRODUTOS + TOTAL
     // ============================
     let total = 0;
 
     for (const item of itens) {
+
+      if (!item.produto_id || item.quantidade <= 0 || item.quantidade > 50) {
+        throw new Error("Item inválido");
+      }
+
       const produto = await client.query(
         `SELECT preco FROM produtos WHERE id = $1`,
         [item.produto_id]
@@ -72,17 +153,25 @@ export default async function handler(req, res) {
       total += subtotal;
     }
 
+    // ============================
+    // 🔥 FRETE + DESCONTO
+    // ============================
+    const freteFinal = Number(frete) || 0;
+
     let desconto = 0;
 
-    // 💰 desconto PIX
     if (pagamento === "pix") {
-      desconto = total * 0.05;      
+      desconto = total * 0.05;
     }
-    total += frete - desconto || 0;
-    
+
+    total = total + freteFinal - desconto;
+
+    if (total <= 0) {
+      throw new Error("Total inválido");
+    }
 
     // ============================
-    // 🔥 3. PEDIDO
+    // 🔥 PEDIDO
     // ============================
     const pedido = await client.query(
       `INSERT INTO pedidos (
@@ -101,20 +190,20 @@ export default async function handler(req, res) {
       [
         `PED-${Date.now()}`,
         clienteId,
-        endereco.rua,
-        endereco.numero,
-        endereco.complemento,
-        endereco.bairro,
-        endereco.cidade,
-        endereco.estado,
-        endereco.cep,
+        endereco?.rua || "",
+        endereco?.numero || "",
+        endereco?.complemento || "",
+        endereco?.bairro || "",
+        endereco?.cidade || "",
+        endereco?.estado || "",
+        endereco?.cep || "",
         entrega,
         pagamento,
-        frete || 0,
+        freteFinal,
         prazo || 0,
         total,
-        transportadora,
-        cliente.whatsapp
+        transportadora || "",
+        cliente.whatsapp || null
       ]
     );
 
@@ -122,7 +211,7 @@ export default async function handler(req, res) {
     const pedidoCodigo = pedido.rows[0].pedido_codigo;
 
     // ============================
-    // 🔥 4. ITENS
+    // 🔥 ITENS
     // ============================
     for (const item of itens) {
       await client.query(
@@ -142,18 +231,15 @@ export default async function handler(req, res) {
           item.quantidade,
           item.preco_unitario,
           item.subtotal,
-          item.personalizacao_txt,
-          item.personalizacao_img
+          item.personalizacao_txt || null,
+          item.personalizacao_img || null
         ]
       );
     }
 
-    // ============================
-    // 🔥 COMMIT
-    // ============================
     await client.query("COMMIT");
 
-    return send(res, 200, {      
+    return send(res, 200, {
       pedido_id: pedidoId,
       pedido_codigo: pedidoCodigo,
       total
@@ -161,10 +247,11 @@ export default async function handler(req, res) {
 
   } catch (err) {
     await client.query("ROLLBACK");
-    console.error(err);
+
+    console.error("Erro criar pedido:", err.message);
 
     return send(res, 500, {
-      error: err.message
+      error: "Erro ao criar pedido"
     });
 
   } finally {
