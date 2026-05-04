@@ -36,7 +36,7 @@ export function formatarPedidoPayload(data) {
   // =========================
   const entrega = String(data.entrega || "");
 
-  const entregasValidas = ["retirada", "entrega"];
+  const entregasValidas = ["retirada", "frete"];
 
   if (!entregasValidas.includes(entrega)) {
     throw new Error("Tipo de entrega inválido");
