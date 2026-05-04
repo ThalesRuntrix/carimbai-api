@@ -2,26 +2,61 @@ import client from "../lib/mercadoPago.js";
 import { Payment } from "mercadopago";
 import { processarPagamentoAprovado } from "../lib/processarPagamentoAprovado.js";
 
+const rateLimitMap = new Map();
+
+function rateLimit(req, limit = 10, windowMs = 60000) {
+    const ip =
+        req.headers["x-forwarded-for"]?.split(",")[0] ||
+        req.socket?.remoteAddress ||
+        "unknown";
+
+    const now = Date.now();
+
+    if (!rateLimitMap.has(ip)) {
+        rateLimitMap.set(ip, []);
+    }
+
+    const timestamps = rateLimitMap.get(ip);
+
+    const recent = timestamps.filter(
+        (t) => now - t < windowMs
+    );
+
+    if (recent.length >= limit) {
+        return false;
+    }
+
+    recent.push(now);
+    rateLimitMap.set(ip, recent);
+
+    return true;
+}
+
+
+function validarOrigem(req) {
+    const origin = req.headers.origin;
+    const referer = req.headers.referer;
+
+    const permitido = "https://runtrix.com.br";
+
+    if (
+        (origin && origin.startsWith(permitido)) ||
+        (referer && referer.startsWith(permitido))
+    ) {
+        return true;
+    }
+
+    return false;
+}
+
 const paymentApi = new Payment(client);
 
 export default async function handler(req, res) {
-    // =========================
+
     // CORS
-    // =========================
-    res.setHeader(
-        "Access-Control-Allow-Origin",
-        "https://runtrix.com.br"
-    );
-
-    res.setHeader(
-        "Access-Control-Allow-Methods",
-        "GET,POST,OPTIONS"
-    );
-
-    res.setHeader(
-        "Access-Control-Allow-Headers",
-        "Content-Type"
-    );
+    res.setHeader("Access-Control-Allow-Origin", "https://runtrix.com.br");
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
     if (req.method === "OPTIONS") {
         return res.status(200).end();
@@ -30,6 +65,35 @@ export default async function handler(req, res) {
     const action = req.query.action;
 
     try {
+
+        // WEBHOOK NÃO PASSA POR VALIDAÇÕES DE FRONT
+        if (action === "webhook") {
+            return await webhook(req, res);
+        }
+
+        // BLOQUEIA USO EXTERNO
+        if (!validarOrigem(req)) {
+            console.warn("Origem não permitida");
+            return res.status(403).json({ error: "Forbidden" });
+        }
+
+        // RATE LIMIT POR AÇÃO
+        if (action === "card" || action === "pix") {
+            if (!rateLimit(req, 5, 60000)) {
+                return res.status(429).json({
+                    error: "Muitas tentativas de pagamento"
+                });
+            }
+        }
+
+        if (action === "status") {
+            if (!rateLimit(req, 20, 60000)) {
+                return res.status(429).json({
+                    error: "Muitas consultas"
+                });
+            }
+        }
+
         switch (action) {
             case "pix":
                 return await gerarPix(req, res);
@@ -37,10 +101,11 @@ export default async function handler(req, res) {
             case "card":
                 return await pagarCartao(req, res);
 
-            case "webhook":
-                return await webhook(req, res);
-
             case "dev-approve":
+                // 🔐 BLOQUEIA EM PRODUÇÃO
+                if (process.env.NODE_ENV === "production") {
+                    return res.status(403).json({ error: "Forbidden" });
+                }
                 return await devApprove(req, res);
 
             case "status":
@@ -51,6 +116,7 @@ export default async function handler(req, res) {
                     error: "Ação inválida"
                 });
         }
+
     } catch (error) {
         console.error(error);
 
@@ -91,6 +157,12 @@ async function gerarPix(req, res) {
     if (!pedido) {
         return res.status(404).json({
             error: "Pedido não encontrado"
+        });
+    }
+
+    if (pedido.status_pagamento === "approved") {
+        return res.status(400).json({
+            error: "Pedido já pago"
         });
     }
 
@@ -164,6 +236,12 @@ async function pagarCartao(req, res) {
         if (!pedido) {
             return res.status(404).json({
                 error: "Pedido não encontrado"
+            });
+        }
+
+        if (pedido.status_pagamento === "approved") {
+            return res.status(400).json({
+                error: "Pedido já pago"
             });
         }
 
