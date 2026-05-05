@@ -101,13 +101,6 @@ export default async function handler(req, res) {
             case "card":
                 return await pagarCartao(req, res);
 
-            case "dev-approve":
-                // 🔐 BLOQUEIA EM PRODUÇÃO
-                //if (process.env.NODE_ENV === "production") {                    
-                    //return res.status(403).json({ error: "Forbidden" });
-                //}
-                return await devApprove(req, res);
-
             case "status":
                 return await getPaymentStatus(req, res);
 
@@ -621,37 +614,6 @@ async function webhook(req, res) {
             ok: true
         });
     }
-}
-
-// =====================================================
-// DEV APPROVE
-// =====================================================
-async function devApprove(req, res) {
-    const { pedido_id } = req.body;
-
-    if (!pedido_id) {
-        return res.status(400).json({
-            error:
-                "pedido_id obrigatório"
-        });
-    }
-
-    await processarPagamentoAprovado({
-        pedido_id,
-        payment: {
-            id: "DEV_" + Date.now(),
-            external_reference: String(pedido_id),
-            status: "approved",
-            status_detail: "accredited",
-            payment_type_id: "dev",
-            payment_method_id: "dev",
-            date_approved: new Date().toISOString()
-        }
-    });
-
-    return res.status(200).json({
-        success: true
-    });
 }
 
 // =====================================================
