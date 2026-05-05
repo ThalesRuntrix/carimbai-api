@@ -26,10 +26,32 @@ export default async function handler(req, res) {
     console.log("📩 Update recebido");
 
     // =========================
-    // IGNORA SE NÃO FOR MENSAGEM
+    // CALLBACK (BOTÕES)
     // =========================
+    if (body?.callback_query) {
+
+    const chatId = String(body.callback_query.message.chat.id);
+    const data = body.callback_query.data;
+
+    console.log("🔘 Callback recebido:", data);
+
+    if (chatId !== process.env.TELEGRAM_CHAT_ID) {
+        console.warn("🚫 Chat não autorizado:", chatId);
+        return res.status(200).json({ ok: true });
+    }
+
+    // exemplo: produzido:123
+    if (data.startsWith("produzido:")) {
+        const pedidoId = data.split(":")[1];
+
+        await marcarComoProduzido(chatId, pedidoId);
+    }
+
+    return res.status(200).json({ ok: true });
+    }
+
     if (!body?.message) {
-      return res.status(200).json({ ok: true });
+        return res.status(200).json({ ok: true });
     }
 
     const chatId = String(body.message.chat.id);
