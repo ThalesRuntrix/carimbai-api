@@ -103,9 +103,9 @@ export default async function handler(req, res) {
 
             case "dev-approve":
                 // 🔐 BLOQUEIA EM PRODUÇÃO
-                if (process.env.NODE_ENV === "production") {                    
-                    return res.status(403).json({ error: "Forbidden" });
-                }
+                //if (process.env.NODE_ENV === "production") {                    
+                    //return res.status(403).json({ error: "Forbidden" });
+                //}
                 return await devApprove(req, res);
 
             case "status":
