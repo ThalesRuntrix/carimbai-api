@@ -12,109 +12,151 @@ export default async function handler(req, res) {
   try {
 
     // =========================
-    // VALIDA TOKEN SECRETO
+    // VALIDA HEADER SECRETO 
     // =========================
-    const token = req.query.token;
+    const secret = req.headers["x-telegram-bot-api-secret-token"];
 
-    if (token !== process.env.TELEGRAM_WEBHOOK_SECRET) {
-      console.warn("Webhook Telegram inválido (token)");
+    if (secret !== process.env.TELEGRAM_WEBHOOK_SECRET) {
+      console.warn("❌ Webhook inválido (secret_token)");
       return res.status(401).json({ ok: false });
     }
 
     const body = req.body;
 
-    console.log("📩 Telegram Update:", body);
+    console.log("📩 Update recebido");
 
     // =========================
-    // VALIDA ESTRUTURA
+    // IGNORA SE NÃO FOR MENSAGEM
     // =========================
     if (!body?.message) {
       return res.status(200).json({ ok: true });
     }
 
-    const chatId = body.message.chat.id;
-    const text = body.message.text;
+    const chatId = String(body.message.chat.id);
+    const text = body.message.text?.trim();
 
     // =========================
     // VALIDA CHAT AUTORIZADO
     // =========================
-    if (String(chatId) !== process.env.TELEGRAM_CHAT_ID) {
-      console.warn("Chat não autorizado:", chatId);
+    if (chatId !== process.env.TELEGRAM_CHAT_ID) {
+      console.warn("🚫 Chat não autorizado:", chatId);
       return res.status(200).json({ ok: true });
     }
 
     // =========================
-    // COMANDOS
+    // IGNORA MENSAGENS SEM TEXTO
     // =========================
-    if (text === "/pedidos") {
-      await responderPedidos(chatId);
+    if (!text) {
+      return res.status(200).json({ ok: true });
     }
 
-    if (text?.startsWith("/produzido")) {
-      const pedidoId = text.split(" ")[1];
-      await marcarComoProduzido(chatId, pedidoId);
+    // =========================
+    // PARSER DE COMANDOS
+    // =========================
+    const [command, ...args] = text.split(" ");
+
+    const commands = {
+      "/pedidos": () => responderPedidos(chatId),
+      "/produzido": () => marcarComoProduzido(chatId, args[0]),
+    };
+
+    if (commands[command]) {
+      await commands[command]();
+    } else {
+      await enviarTelegram(chatId, "❓ Comando não reconhecido");
     }
 
     return res.status(200).json({ ok: true });
 
   } catch (error) {
-    console.error("Erro webhook Telegram:", error);
+    console.error("🔥 Erro webhook Telegram:", error);
     return res.status(200).json({ ok: true });
   }
 }
 
+//
+// =========================
+// FUNÇÕES
+// =========================
+//
+
 async function responderPedidos(chatId) {
 
-  const response = await fetch(
-    `${process.env.SUPABASE_URL}/rest/v1/pedidos?status_pedido=eq.producao&select=id,pedido_codigo,total`,
-    {
-      headers: {
-        apikey: process.env.SUPABASE_KEY,
-        Authorization: `Bearer ${process.env.SUPABASE_KEY}`
+  try {
+
+    const response = await fetch(
+      `${process.env.SUPABASE_URL}/rest/v1/pedidos?status_pedido=eq.producao&select=id,pedido_codigo,total`,
+      {
+        headers: {
+          apikey: process.env.SUPABASE_KEY,
+          Authorization: `Bearer ${process.env.SUPABASE_KEY}`
+        }
       }
+    );
+
+    if (!response.ok) {
+      console.error("Erro ao buscar pedidos");
+      return enviarTelegram(chatId, "❌ Erro ao buscar pedidos");
     }
-  );
 
-  const pedidos = await response.json();
+    const pedidos = await response.json();
 
-  if (!pedidos.length) {
-    return enviarTelegram(chatId, "📭 Nenhum pedido em produção");
+    if (!pedidos.length) {
+      return enviarTelegram(chatId, "📭 Nenhum pedido em produção");
+    }
+
+    let msg = "📦 *Pedidos em produção:*\n\n";
+
+    for (const p of pedidos) {
+      msg += `📌 ID: ${p.id}\n`;
+      msg += `Código: ${p.pedido_codigo}\n`;
+      msg += `Valor: R$ ${p.total}\n\n`;
+    }
+
+    msg += "Use: /produzido ID";
+
+    await enviarTelegram(chatId, msg);
+
+  } catch (error) {
+    console.error("Erro responderPedidos:", error);
+    await enviarTelegram(chatId, "❌ Erro interno");
   }
-
-  let msg = "📦 Pedidos em produção:\n\n";
-
-  for (const p of pedidos) {
-    msg += `#${p.id} - ${p.pedido_codigo} - R$ ${p.total}\n`;
-  }
-
-  msg += "\nUse: /produzido ID";
-
-  await enviarTelegram(chatId, msg);
 }
 
 async function marcarComoProduzido(chatId, pedidoId) {
 
-  if (!pedidoId) {
-    return enviarTelegram(chatId, "❌ Informe o ID do pedido");
-  }
+  try {
 
-  await fetch(
-    `${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedidoId}`,
-    {
-      method: "PATCH",
-      headers: {
-        apikey: process.env.SUPABASE_KEY,
-        Authorization: `Bearer ${process.env.SUPABASE_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        status_pedido: "enviado"
-      })
+    const id = Number(pedidoId);
+
+    if (!id || isNaN(id)) {
+      return enviarTelegram(chatId, "❌ ID inválido");
     }
-  );
 
-  
-  await enviarTelegram(chatId, `✅ Pedido ${pedidoId} marcado como produzido`);
+    const response = await fetch(
+      `${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${id}`,
+      {
+        method: "PATCH",
+        headers: {
+          apikey: process.env.SUPABASE_KEY,
+          Authorization: `Bearer ${process.env.SUPABASE_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          status_pedido: "enviado"
+        })
+      }
+    );
+
+    if (!response.ok) {
+      console.error("Erro ao atualizar pedido");
+      return enviarTelegram(chatId, "❌ Erro ao atualizar pedido");
+    }
+
+    await enviarTelegram(chatId, `✅ Pedido ${id} marcado como produzido`);
+
+  } catch (error) {
+    console.error("Erro marcarComoProduzido:", error);
+    await enviarTelegram(chatId, "❌ Erro interno");
+  }
 }
-
-
