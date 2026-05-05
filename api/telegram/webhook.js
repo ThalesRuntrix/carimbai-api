@@ -103,7 +103,6 @@ export default async function handler(req, res) {
 //
 
 async function responderPedidos(chatId) {
-
   try {
 
     const response = await fetch(
@@ -116,15 +115,12 @@ async function responderPedidos(chatId) {
       }
     );
 
-    if (!response.ok) {
-      console.error("Erro ao buscar pedidos");
-      return enviarTelegram(chatId, "❌ Erro ao buscar pedidos");
-    }
-
     const pedidos = await response.json();
 
     if (!pedidos.length) {
-      return enviarTelegram(chatId, "📭 Nenhum pedido em produção");
+      return enviarTelegram({
+        mensagem: "📭 Nenhum pedido em produção"
+      });
     }
 
     let msg = "📦 *Pedidos em produção:*\n\n";
@@ -137,11 +133,11 @@ async function responderPedidos(chatId) {
 
     msg += "Use: /produzido ID";
 
-    await enviarTelegram(chatId, msg);
+    await enviarTelegram({ mensagem: msg });
 
   } catch (error) {
     console.error("Erro responderPedidos:", error);
-    await enviarTelegram(chatId, "❌ Erro interno");
+    await enviarTelegram({ mensagem: "❌ Erro interno" });
   }
 }
 
