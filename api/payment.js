@@ -130,14 +130,42 @@ export default async function handler(req, res) {
 // STATUS
 // =====================================================
 async function getPaymentStatus(req, res) {
-    const { pedido_id } = req.body;
-    const busca = await fetch(
-        `${SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedido_id}&select=status_pagamento`
-    );
+    try {
+        const pedido_id = req.query.pedido_id || req.body?.pedido_id;
 
-    const rows = await busca.json();
+        if (!pedido_id) {
+            return res.status(400).json({
+                error: "pedido_id obrigatório"
+            });
+        }
 
-    return res.status(200).json(rows[0]);
+        const busca = await fetch(
+            `${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${encodeURIComponent(pedido_id)}&select=status_pagamento`,
+            {
+                headers: {
+                    apikey: process.env.SUPABASE_KEY,
+                    Authorization: `Bearer ${process.env.SUPABASE_KEY}`
+                }
+            }
+        );
+
+        const rows = await busca.json();
+
+        if (!rows.length) {
+            return res.status(404).json({
+                error: "Pedido não encontrado"
+            });
+        }
+
+        return res.status(200).json(rows[0]);
+
+    } catch (error) {
+        console.error("Erro getPaymentStatus:", error);
+
+        return res.status(500).json({
+            error: "Erro interno"
+        });
+    }
 }
 
 // =====================================================
