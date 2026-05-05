@@ -1,4 +1,4 @@
-import { enviarTelegram } from "../../lib/telegram";
+import { enviarTelegram } from "../../lib/telegram.js";
 
 export default async function handler(req, res) {
 
