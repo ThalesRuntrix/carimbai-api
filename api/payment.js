@@ -257,11 +257,6 @@ async function pagarCartao(req, res) {
             });
         }
 
-        console.log("PEDIDO: ", pedido);
-        
-        const cliente = pedido.clientes || {};
-        console.log("CLIENTE: ", cliente);
-
         const paymentResponse = await paymentApi.create({
             body: {
                 transaction_amount:
@@ -280,7 +275,7 @@ async function pagarCartao(req, res) {
                 notification_url:
                     "https://carimbai-api.vercel.app/api/payment?action=webhook",
 
-                payer: montarPayer(cliente)
+                payer: montarPayer(pedido)
             }
         });
 
@@ -693,19 +688,19 @@ async function buscarPedidoPorCodigo(
 }
 
 function montarPayer(
-    cliente
+    pedido
 ) {    
     return {
         email:
-            cliente.email || "comprador@runtrix.com.br",
+            pedido.email_cliente || "comprador@carimbai.com.br",
 
         first_name:
-            cliente.nome
+            pedido.nome_cliente
                 ?.split(" ")[0] ||
             "Cliente",
 
         last_name:
-            cliente.nome
+            pedido.nome_cliente
                 ?.split(" ")
                 .slice(1)
                 .join(" ") || "",
@@ -713,7 +708,7 @@ function montarPayer(
         identification: {
             type: "CPF",
             number:
-                cliente.cpf?.replace(/\D/g, ""),
+                pedido.cpf_cliente?.replace(/\D/g, ""),
         }
     };
 }

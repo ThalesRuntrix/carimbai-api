@@ -178,13 +178,13 @@ export default async function handler(req, res) {
         pedido_codigo,
         cliente_id,
         rua, numero, complemento, bairro, cidade, estado, cep,
-        entrega, pagamento, frete, prazo, status_pedido, status_pagamento, total, transportadora, whatsapp, nome_cliente, email_cliente
+        entrega, pagamento, frete, prazo, status_pedido, status_pagamento, total, transportadora, whatsapp, nome_cliente, email_cliente, cpf_cliente
       )
       VALUES (
         $1, 
         $2,
         $3, $4, $5, $6, $7, $8, $9,
-        $10, $11, $12, $13, 'aguardando_pagamento', 'pending', $14, $15, $16, $17, $18
+        $10, $11, $12, $13, 'aguardando_pagamento', 'pending', $14, $15, $16, $17, $18, $19
       )
       RETURNING id, pedido_codigo`,
       [
@@ -205,7 +205,8 @@ export default async function handler(req, res) {
         transportadora || "",
         cliente.whatsapp || null,
         cliente.nome,
-        cliente.email
+        cliente.email,
+        cliente.cpf
       ]
     );
 
