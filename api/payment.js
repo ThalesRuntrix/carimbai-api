@@ -3,6 +3,7 @@ import { Payment } from "mercadopago";
 import { processarPagamentoAprovado } from "../lib/processarPagamentoAprovado.js";
 
 const rateLimitMap = new Map();
+const paymentApi = new Payment(client);
 
 function rateLimit(req, limit = 10, windowMs = 60000) {
     const ip =
@@ -49,8 +50,6 @@ function validarOrigem(req) {
     return false;
 }
 
-const paymentApi = new Payment(client);
-
 export default async function handler(req, res) {
 
     // CORS
@@ -92,14 +91,6 @@ export default async function handler(req, res) {
             }
         }
 
-        if (action === "status") {
-            if (!rateLimit(req, 20, 60000)) {
-                return res.status(429).json({
-                    error: "Muitas consultas"
-                });
-            }
-        }
-
         switch (action) {
             case "pix":
                 return await gerarPix(req, res);
@@ -107,8 +98,8 @@ export default async function handler(req, res) {
             case "card":
                 return await pagarCartao(req, res);
 
-            case "status":
-                return await getPaymentStatus(req, res);
+            case "webhook":
+                return await webhook(req, res);
 
             default:
                 return res.status(404).json({
@@ -337,10 +328,8 @@ async function pagarCartao(req, res) {
             status: payment.status
         });
     } catch (error) {
-        console.error(
-            "ERRO pagarCartao:",
-            error?.stack || error
-        );
+        console.error("ERRO pagarCartao:");
+        console.dir(error, { depth: null });
 
         return res.status(500).json({
             error: true
