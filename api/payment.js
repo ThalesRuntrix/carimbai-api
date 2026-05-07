@@ -259,9 +259,6 @@ async function pagarCartao(req, res) {
 
         const cliente = pedido.clientes || {};
 
-        console.log("Vai criar pagamento para o pedido: ", pedido);
-        console.log("Do Cliente: ", cliente);        
-
         const payment = await paymentApi.create({
             body: {
                 transaction_amount:
@@ -293,8 +290,6 @@ async function pagarCartao(req, res) {
             mp_payment_method: payment.payment_method_id,
             status_pagamento: "pending"
         });
-
-        console.log("Atualizou pedido");
 
         return res.status(200).json({
             success: true,
@@ -629,11 +624,7 @@ async function buscarPedido(
             }
         );
 
-    const data =
-        await response.json();
-
-    console.log("Pedido buscado dentro de buscarPedido: ", data[0]);
-
+    const data = await response.json();
     return data[0];
 }
 
