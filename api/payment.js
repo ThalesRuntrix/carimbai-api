@@ -66,9 +66,15 @@ export default async function handler(req, res) {
 
     try {
 
-        // WEBHOOK NÃO PASSA POR VALIDAÇÕES DE FRONT
-        if (action === "webhook") {
-            return await webhook(req, res);
+        // WEBHOOK NÃO PASSA POR VALIDAÇÃO DE ORIGEM
+        if (action !== "webhook") {
+
+            if (!validarOrigem(req)) {
+                return res.status(403).json({
+                    error: "Forbidden"
+                });
+            }
+
         }
 
         // BLOQUEIA USO EXTERNO
@@ -269,6 +275,25 @@ async function pagarCartao(req, res) {
 
         console.log("Vai criar pagamento para o pedido: ", pedido);
         console.log("Do Cliente: ", cliente);
+        console.log({
+            transaction_amount:
+                Number(pedido.total),
+
+            token,
+            issuer_id,
+            payment_method_id,
+
+            installments:
+                Number(installments),
+
+            external_reference:
+                String(pedido.pedido_codigo),
+
+            //notification_url:
+             //   "https://carimbai-api.vercel.app/api/payment?action=webhook",
+
+            payer: montarPayer(cliente)
+        });
 
         const payment = await paymentApi.create({
             body: {
