@@ -244,8 +244,7 @@ async function pagarCartao(req, res) {
         }
         
         const pedido = await buscarPedido(pedido_id);
-        console.log("PEDIDO: ", pedido);
-        
+                
         if (!pedido) {
             return res.status(404).json({
                 error: "Pedido não encontrado"
