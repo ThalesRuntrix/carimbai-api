@@ -299,8 +299,15 @@ async function pagarCartao(req, res) {
             status: payment.status
         });
     } catch (error) {
-        console.error("ERRO pagarCartao:");
-        JSON.stringify(error, null, 2);
+        console.error(
+            "ERRO pagarCartao RAW:",
+            error
+        );
+
+        console.error(
+            "ERRO pagarCartao JSON:",
+            JSON.stringify(error, null, 2)
+        );
 
         return res.status(500).json({
             error: true
