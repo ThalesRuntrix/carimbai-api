@@ -180,7 +180,7 @@ async function marcarComoProduzido(chatId, pedidoId) {
           Prefer: "return=representation"
         },
         body: JSON.stringify({
-          status_pedido: "enviado"
+          status_pedido: "pronto"
         })
       }
     );
