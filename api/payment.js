@@ -626,7 +626,7 @@ async function buscarPedido(
 ) {
     const response =
         await fetch(
-            `${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedido_id}&select=*,clientes(*)`,
+            `${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${pedido_id}&select=*`,
             {
                 headers: {
                     apikey:
