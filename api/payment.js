@@ -250,13 +250,9 @@ async function pagarCartao(req, res) {
                 error: "Dados inválidos"
             });
         }
-
-        console.log("Vai buscar pedido");
         
         const pedido = await buscarPedido(pedido_id);
         
-        console.log("Buscou pedido: ", pedido);
-
         if (!pedido) {
             return res.status(404).json({
                 error: "Pedido não encontrado"
@@ -271,7 +267,8 @@ async function pagarCartao(req, res) {
 
         const cliente = pedido.clientes || {};
 
-        console.log("Vai criar pagamento");
+        console.log("Vai criar pagamento para o pedido: ", pedido);
+        console.log("Do Cliente: ", cliente);
 
         const payment = await paymentApi.create({
             body: {
@@ -701,6 +698,7 @@ async function buscarPedidoPorCodigo(
 function montarPayer(
     cliente
 ) {
+    console.log("Vai montar Payer");
     return {
         email:
             cliente.email,
