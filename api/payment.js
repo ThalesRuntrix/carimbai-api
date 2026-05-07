@@ -298,7 +298,7 @@ async function pagarCartao(req, res) {
         });
     } catch (error) {
         console.error("ERRO pagarCartao:");
-        console.dir(error, { depth: null });
+        JSON.stringify(error, null, 2);
 
         return res.status(500).json({
             error: true
