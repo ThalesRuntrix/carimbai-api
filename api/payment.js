@@ -259,7 +259,7 @@ async function pagarCartao(req, res) {
 
         const cliente = pedido.clientes || {};
 
-        const payment = await paymentApi.create({
+        const paymentResponse = await paymentApi.create({
             body: {
                 transaction_amount:
                     Number(pedido.total),
@@ -280,6 +280,8 @@ async function pagarCartao(req, res) {
                 payer: montarPayer(cliente)
             }
         });
+
+        const payment = paymentResponse.response || paymentResponse;
 
         await atualizarPedido(pedido.id, {
             mp_payment_id: String(payment.id),
