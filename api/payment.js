@@ -644,6 +644,8 @@ async function buscarPedido(
     const data =
         await response.json();
 
+    console.log("Pedido buscado dentro de buscarPedido: ", data[0]);
+
     return data[0];
 }
 
