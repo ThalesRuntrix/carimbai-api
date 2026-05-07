@@ -23,7 +23,7 @@ export default async function handler(req, res) {
 
     const body = req.body;
 
-    console.log("📩 Update recebido");
+    console.log("📩 Update recebido", JSON.stringify(body));
 
     // =========================
     // CALLBACK (BOTÕES)
@@ -40,7 +40,19 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true });
     }
 
-    // exemplo: produzido:123
+    // responde callback (remove loading do botão)
+    await fetch(
+      `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/answerCallbackQuery`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          callback_query_id: body.callback_query.id
+        })
+      }
+    );
+
+    // ação: marcar como produzido
     if (data.startsWith("produzido:")) {
         const pedidoId = data.split(":")[1];
 
@@ -50,6 +62,9 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
     }
 
+    // =====================================
+    // 💬 MENSAGENS
+    // =====================================
     if (!body?.message) {
         return res.status(200).json({ ok: true });
     }
@@ -85,7 +100,9 @@ export default async function handler(req, res) {
     if (commands[command]) {
       await commands[command]();
     } else {
-      await enviarTelegram(chatId, "❓ Comando não reconhecido");
+      await enviarTelegram({
+        mensagem: "❓ Comando não reconhecido"
+      });
     }
 
     return res.status(200).json({ ok: true });
@@ -96,12 +113,10 @@ export default async function handler(req, res) {
   }
 }
 
-//
-// =========================
-// FUNÇÕES
-// =========================
-//
 
+// =========================
+// 📦 LISTAR PEDIDOS
+// =========================
 async function responderPedidos(chatId) {
   try {
 
@@ -141,6 +156,9 @@ async function responderPedidos(chatId) {
   }
 }
 
+// =========================
+// 🏭 MARCAR COMO PRODUZIDO
+// =========================
 async function marcarComoProduzido(chatId, pedidoId) {
 
   try {
@@ -148,17 +166,18 @@ async function marcarComoProduzido(chatId, pedidoId) {
     const id = Number(pedidoId);
 
     if (!id || isNaN(id)) {
-      return enviarTelegram(chatId, "❌ ID inválido");
+      return enviarTelegram({ mensagem: "❌ ID inválido" });
     }
 
     const response = await fetch(
-      `${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${id}`,
+      `${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${encodeURIComponent(id)}`,
       {
         method: "PATCH",
         headers: {
           apikey: process.env.SUPABASE_KEY,
           Authorization: `Bearer ${process.env.SUPABASE_KEY}`,
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          Prefer: "return=representation"
         },
         body: JSON.stringify({
           status_pedido: "enviado"
@@ -166,15 +185,26 @@ async function marcarComoProduzido(chatId, pedidoId) {
       }
     );
 
-    if (!response.ok) {
+    const result = await response.json();
+
+    console.log("📝 UPDATE STATUS:", response.status);
+    console.log("📝 UPDATE RESPONSE:", result);
+
+    if (!response.ok || !result.length) {
       console.error("Erro ao atualizar pedido");
-      return enviarTelegram(chatId, "❌ Erro ao atualizar pedido");
+      return enviarTelegram({
+        mensagem: "❌ Erro ao atualizar pedido"
+      });
     }
 
-    await enviarTelegram(chatId, `✅ Pedido ${id} marcado como produzido`);
+    await enviarTelegram({
+      mensagem: `✅ Pedido ${id} marcado como produzido`
+    });
 
   } catch (error) {
     console.error("Erro marcarComoProduzido:", error);
-    await enviarTelegram(chatId, "❌ Erro interno");
+    await enviarTelegram({
+      mensagem: "❌ Erro interno"
+    });
   }
 }
