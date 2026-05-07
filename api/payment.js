@@ -250,9 +250,12 @@ async function pagarCartao(req, res) {
                 error: "Dados inválidos"
             });
         }
+
+        console.log("Vai buscar pedido: ", pedido);
         
         const pedido = await buscarPedido(pedido_id);
         
+        console.log("Buscou pedido: ", pedido);
 
         if (!pedido) {
             return res.status(404).json({
@@ -267,6 +270,8 @@ async function pagarCartao(req, res) {
         }
 
         const cliente = pedido.clientes || {};
+
+        console.log("Vai criar pagamento");
 
         const payment = await paymentApi.create({
             body: {
@@ -290,6 +295,8 @@ async function pagarCartao(req, res) {
             }
         });
 
+        console.log("Vai atualizar pedido");
+
         await atualizarPedido(pedido.id, {
             mp_payment_id: String(payment.id),
             external_reference: String(pedido.pedido_codigo),
@@ -299,6 +306,8 @@ async function pagarCartao(req, res) {
             mp_payment_method: payment.payment_method_id,
             status_pagamento: "pending"
         });
+
+        console.log("Atualizou pedido");
 
         return res.status(200).json({
             success: true,
