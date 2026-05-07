@@ -69,17 +69,12 @@ export default async function handler(req, res) {
         if (action !== "webhook") {
 
             if (!validarOrigem(req)) {
+                console.warn("Origem não permitida");
                 return res.status(403).json({
                     error: "Forbidden"
                 });
             }
 
-        }
-
-        // BLOQUEIA USO EXTERNO
-        if (!validarOrigem(req)) {
-            console.warn("Origem não permitida");
-            return res.status(403).json({ error: "Forbidden" });
         }
 
         // RATE LIMIT POR AÇÃO
@@ -265,26 +260,7 @@ async function pagarCartao(req, res) {
         const cliente = pedido.clientes || {};
 
         console.log("Vai criar pagamento para o pedido: ", pedido);
-        console.log("Do Cliente: ", cliente);
-        console.log({
-            transaction_amount:
-                Number(pedido.total),
-
-            token,
-            issuer_id,
-            payment_method_id,
-
-            installments:
-                Number(installments),
-
-            external_reference:
-                String(pedido.pedido_codigo),
-
-            //notification_url:
-             //   "https://carimbai-api.vercel.app/api/payment?action=webhook",
-
-            payer: montarPayer(cliente)
-        });
+        console.log("Do Cliente: ", cliente);        
 
         const payment = await paymentApi.create({
             body: {
@@ -301,14 +277,12 @@ async function pagarCartao(req, res) {
                 external_reference:
                     String(pedido.pedido_codigo),
 
-                //notification_url:
-                    //"https://carimbai-api.vercel.app/api/payment?action=webhook",
+                notification_url:
+                    "https://carimbai-api.vercel.app/api/payment?action=webhook",
 
                 payer: montarPayer(cliente)
             }
         });
-
-        console.log("Vai atualizar pedido");
 
         await atualizarPedido(pedido.id, {
             mp_payment_id: String(payment.id),
@@ -713,8 +687,7 @@ async function buscarPedidoPorCodigo(
 
 function montarPayer(
     cliente
-) {
-    console.log("Vai montar Payer");
+) {    
     return {
         email:
             cliente.email,
