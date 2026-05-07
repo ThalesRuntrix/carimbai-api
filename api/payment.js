@@ -257,6 +257,8 @@ async function pagarCartao(req, res) {
             });
         }
 
+        console.log("PEDIDO: ", pedido);
+        
         const cliente = pedido.clientes || {};
         console.log("CLIENTE: ", cliente);
 
