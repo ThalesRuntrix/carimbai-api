@@ -258,6 +258,7 @@ async function pagarCartao(req, res) {
         }
 
         const cliente = pedido.clientes || {};
+        console.log("CLIENTE: ", cliente);
 
         const paymentResponse = await paymentApi.create({
             body: {
