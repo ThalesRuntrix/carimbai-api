@@ -262,7 +262,7 @@ async function pagarCartao(req, res) {
         const paymentResponse = await paymentApi.create({
             body: {
                 transaction_amount:
-                    Number(pedido.total),
+                    Number(Number(pedido.total).toFixed(2)),
 
                 token,
                 issuer_id,
@@ -308,6 +308,10 @@ async function pagarCartao(req, res) {
             "ERRO pagarCartao JSON:",
             JSON.stringify(error, null, 2)
         );
+
+        if (error.cause) {
+            console.error("CAUSE:", error.cause);
+        }
 
         return res.status(500).json({
             error: true
@@ -690,7 +694,7 @@ function montarPayer(
 ) {    
     return {
         email:
-            cliente.email,
+            cliente.email || "comprador@runtrix.com.br",
 
         first_name:
             cliente.nome
@@ -706,7 +710,7 @@ function montarPayer(
         identification: {
             type: "CPF",
             number:
-                cliente.cpf
+                cliente.cpf?.replace(/\D/g, ""),
         }
     };
 }
