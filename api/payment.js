@@ -251,7 +251,7 @@ async function pagarCartao(req, res) {
             });
         }
 
-        console.log("Vai buscar pedido: ", pedido);
+        console.log("Vai buscar pedido");
         
         const pedido = await buscarPedido(pedido_id);
         
