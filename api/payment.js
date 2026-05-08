@@ -86,6 +86,14 @@ export default async function handler(req, res) {
             }
         }
 
+        if (action === "status") {
+            if (!rateLimit(req, 5, 60000)) {
+                return res.status(429).json({
+                    error: "Muitas tentativas de consulta ao status"
+                });
+            }
+        }
+
         switch (action) {
             case "pix":
                 return await gerarPix(req, res);
@@ -95,6 +103,9 @@ export default async function handler(req, res) {
 
             case "webhook":
                 return await webhook(req, res);
+
+            case "status":
+                return await getPaymentStatus(req, res);
 
             default:
                 return res.status(404).json({
