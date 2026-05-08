@@ -212,6 +212,7 @@ export default async function handler(req, res) {
 
     const pedidoId = pedido.rows[0].id;
     const pedidoCodigo = pedido.rows[0].pedido_codigo;
+    const nomeCliente = pedido.rows[0].nome_cliente;
 
     // ============================
     // 🔥 ITENS
@@ -245,6 +246,7 @@ export default async function handler(req, res) {
     return send(res, 200, {
       pedido_id: pedidoId,
       pedido_codigo: pedidoCodigo,
+      nome_cliente: nomeCliente,
       total
     });
 
