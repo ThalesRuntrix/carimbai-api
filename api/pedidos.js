@@ -186,7 +186,7 @@ export default async function handler(req, res) {
         $3, $4, $5, $6, $7, $8, $9,
         $10, $11, $12, $13, 'aguardando_pagamento', 'pending', $14, $15, $16, $17, $18, $19
       )
-      RETURNING id, pedido_codigo`,
+      RETURNING id, pedido_codigo, nome_cliente`,
       [
         `PED-${Date.now()}`,
         clienteId,
