@@ -152,14 +152,11 @@ async function devApprove(req, res) {
         });
     }
 
-    const cliente = pedido.clientes || {};
-    console.log("CLIENTE VINDO DO PEDIDO: ", cliente);
-
     await processarPagamentoAprovado({
         pedido_id,
         payment: {
             id: "DEV_" + Date.now(),
-            external_reference: String(pedido_id),
+            external_reference: String(pedido.pedido_codigo),
             status: "approved",
             status_detail: "accredited",
             payment_type_id: "dev",
