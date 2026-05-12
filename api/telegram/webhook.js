@@ -23,17 +23,13 @@ export default async function handler(req, res) {
 
     const body = req.body;
 
-    console.log("📩 Update recebido", JSON.stringify(body));
-
     // =========================
     // CALLBACK (BOTÕES)
     // =========================
     if (body?.callback_query) {
 
     const chatId = String(body.callback_query.message.chat.id);
-    const data = body.callback_query.data;
-
-    console.log("🔘 Callback recebido:", data);
+    const data = body.callback_query.data;    
 
     if (chatId !== process.env.TELEGRAM_CHAT_ID) {
         console.warn("🚫 Chat não autorizado:", chatId);
@@ -186,9 +182,6 @@ async function marcarComoProduzido(chatId, pedidoId) {
     );
 
     const result = await response.json();
-
-    console.log("📝 UPDATE STATUS:", response.status);
-    console.log("📝 UPDATE RESPONSE:", result);
 
     if (!response.ok || !result.length) {
       console.error("Erro ao atualizar pedido");

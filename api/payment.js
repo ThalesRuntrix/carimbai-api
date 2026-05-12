@@ -613,7 +613,7 @@ async function webhook(req, res) {
             ) ===
                 String(payment.id)
         ) {
-            console.log(
+            console.warn(
                 "Webhook duplicado"
             );
 
