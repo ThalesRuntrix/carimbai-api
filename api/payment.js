@@ -107,6 +107,9 @@ export default async function handler(req, res) {
             case "status":
                 return await getPaymentStatus(req, res);
 
+            case "dev-approve-pix":
+                return await devApprove(req, res);
+
             default:
                 return res.status(404).json({
                     error: "Ação inválida"
@@ -120,6 +123,54 @@ export default async function handler(req, res) {
             error: "Erro interno"
         });
     }
+}
+
+// =====================================================
+// DEV APPROVE (TEST PIX)
+// =====================================================
+async function devApprove(req, res) {
+    const { pedido_id } = req.body;
+
+    if (!pedido_id) {
+        return res.status(400).json({
+            error:
+                "pedido_id obrigatório"
+        });
+    }
+
+    const pedido = await buscarPedido(pedido_id);
+
+    if (!pedido) {
+        return res.status(404).json({
+            error: "Pedido não encontrado"
+        });
+    }
+
+    if (pedido.status_pagamento === "approved") {
+        return res.status(400).json({
+            error: "Pedido já pago"
+        });
+    }
+
+    const cliente = pedido.clientes || {};
+    console.log("CLIENTE VINDO DO PEDIDO: ", cliente);
+
+    await processarPagamentoAprovado({
+        pedido_id,
+        payment: {
+            id: "DEV_" + Date.now(),
+            external_reference: String(pedido_id),
+            status: "approved",
+            status_detail: "accredited",
+            payment_type_id: "dev",
+            payment_method_id: "dev",
+            date_approved: new Date().toISOString()
+        }
+    });
+
+    return res.status(200).json({
+        success: true
+    });
 }
 
 // =====================================================
@@ -190,8 +241,6 @@ async function gerarPix(req, res) {
         });
     }
 
-    const cliente = pedido.clientes || {};
-
     const payment = await paymentApi.create({
         body: {
             transaction_amount: Number(pedido.total),
@@ -207,7 +256,7 @@ async function gerarPix(req, res) {
             notification_url:
                 "https://carimbai-api.vercel.app/api/payment?action=webhook",
 
-            payer: montarPayer(cliente)
+            payer: montarPayer(pedido)
         }
     });
 
@@ -223,14 +272,18 @@ async function gerarPix(req, res) {
         mp_payment_type: payment.payment_type_id,
         mp_payment_method: payment.payment_method_id,
         pix_codigo: qr.qr_code,
-        pix_qr_code: qr.qr_code_base64
+        pix_qr_code: qr.qr_code_base64,
+        status_pagamento: "pending"
     });
 
     return res.status(200).json({
+        success: true,
         payment_id: payment.id,
+        status: payment.status,
         qr_code: qr.qr_code,
         qr_code_base64: qr.qr_code_base64
     });
+    
 }
 
 // =====================================================
