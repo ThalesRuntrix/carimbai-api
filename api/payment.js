@@ -336,10 +336,10 @@ async function pagarCartao(req, res) {
                 external_reference:
                     String(pedido.pedido_codigo),
 
-                //notification_url:
-                    //"https://carimbai-api.vercel.app/api/payment?action=webhook",
+                notification_url:
+                    "https://carimbai-api.vercel.app/api/payment?action=webhook",
 
-                payer: montarPayer(pedido)
+                payer: montarPayerMP(pedido, formData)
             }
         });
 
@@ -775,6 +775,50 @@ function montarPayer(
             type: "CPF",
             number:
                 pedido.cpf_cliente?.replace(/\D/g, ""),
+        }
+    };
+}
+
+function montarPayerMP(
+    pedido,
+    formData
+) {
+
+    const payerForm =
+        formData?.payer || {};
+
+    const identification =
+        payerForm?.identification || {};
+
+    return {
+
+        email:
+            payerForm.email ||
+            pedido.email_cliente ||
+            "comprador@carimbai.com.br",
+
+        first_name:
+            pedido.nome_cliente
+                ?.split(" ")[0] ||
+            "Cliente",
+
+        last_name:
+            pedido.nome_cliente
+                ?.split(" ")
+                .slice(1)
+                .join(" ") || "",
+
+        identification: {
+
+            type:
+                identification.type || "CPF",
+
+            number:
+                identification.number
+                    ?.replace(/\D/g, "") ||
+
+                pedido.cpf_cliente
+                    ?.replace(/\D/g, "")
         }
     };
 }
