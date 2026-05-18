@@ -319,6 +319,7 @@ async function pagarCartao(req, res) {
         }
 
         console.log("PEDIDO QUE VAI GERAR O PAYMENT NO MP: ", pedido);
+        console.log("FORMDATA QUW VAI PARA O PAYMENT NO MP: ", formData);
 
         const paymentResponse = await paymentApi.create({
             body: {
