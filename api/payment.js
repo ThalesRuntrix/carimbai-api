@@ -232,6 +232,10 @@ async function gerarPix(req, res) {
         });
     }
 
+    if (!pedido.cpf_cliente) {
+        throw new Error("CPF obrigatório");
+    }
+
     if (pedido.status_pagamento === "approved") {
         return res.status(400).json({
             error: "Pedido já pago"
@@ -253,9 +257,14 @@ async function gerarPix(req, res) {
             notification_url:
                 "https://carimbai-api.vercel.app/api/payment?action=webhook",
 
-            payer: montarPayer(pedido)
+            payer: montarPayerPIX(pedido)
         }
     });
+
+    console.log(
+        "PIX PAYMENT:",
+        JSON.stringify(payment, null, 2)
+    );
 
     const qr =
         payment.point_of_interaction
@@ -318,8 +327,9 @@ async function pagarCartao(req, res) {
             });
         }
 
-        console.log("PEDIDO QUE VAI GERAR O PAYMENT NO MP: ", pedido);
-        console.log("FORMDATA QUW VAI PARA O PAYMENT NO MP: ", formData);
+        if (!pedido.cpf_cliente) {
+            throw new Error("CPF obrigatório");
+        }
 
         const paymentResponse = await paymentApi.create({
             body: {
@@ -339,13 +349,16 @@ async function pagarCartao(req, res) {
                 notification_url:
                     "https://carimbai-api.vercel.app/api/payment?action=webhook",
 
-                payer: montarPayerMP(pedido, formData)
+                payer: montarPayerCartao(pedido, formData)
             }
         });
 
         const payment = paymentResponse.response || paymentResponse;
 
-        console.log("PAYMENT GERADO NO MP: ", payment);
+        console.log(
+            "CARD PAYMENT:",
+            JSON.stringify(payment, null, 2)
+        );
 
         await atualizarPedido(pedido.id, {
             mp_payment_id: String(payment.id),
@@ -753,12 +766,15 @@ async function buscarPedidoPorCodigo(
     return data[0];
 }
 
-function montarPayer(
+function montarPayerPIX(
     pedido
-) {    
+) {
+
     return {
+
         email:
-            pedido.email_cliente || "comprador@carimbai.com.br",
+            pedido.email_cliente ||
+            "comprador@carimbai.com.br",
 
         first_name:
             pedido.nome_cliente
@@ -772,14 +788,30 @@ function montarPayer(
                 .join(" ") || "",
 
         identification: {
+
             type: "CPF",
+
             number:
-                pedido.cpf_cliente?.replace(/\D/g, ""),
+                pedido.cpf_cliente
+                    ?.replace(/\D/g, "")
+        },
+
+        phone: {
+
+            area_code:
+                pedido.whatsapp
+                    ?.replace(/\D/g, "")
+                    .slice(0, 2),
+
+            number:
+                pedido.whatsapp
+                    ?.replace(/\D/g, "")
+                    .slice(2)
         }
     };
 }
 
-function montarPayerMP(
+function montarPayerCartao(
     pedido,
     formData
 ) {
@@ -789,6 +821,10 @@ function montarPayerMP(
 
     const identification =
         payerForm?.identification || {};
+
+     const telefone =
+        pedido.whatsapp
+            ?.replace(/\D/g, "");
 
     return {
 
@@ -819,6 +855,16 @@ function montarPayerMP(
 
                 pedido.cpf_cliente
                     ?.replace(/\D/g, "")
+        },
+
+        phone: {
+
+            area_code:
+                telefone?.slice(0, 2),
+
+            number:
+                telefone?.slice(2)
         }
+
     };
 }
