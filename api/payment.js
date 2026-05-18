@@ -318,6 +318,8 @@ async function pagarCartao(req, res) {
             });
         }
 
+        console.log("PEDIDO QUE VAI GERAR O PAYMENT NO MP: ", pedido);
+
         const paymentResponse = await paymentApi.create({
             body: {
                 transaction_amount:
@@ -341,6 +343,8 @@ async function pagarCartao(req, res) {
         });
 
         const payment = paymentResponse.response || paymentResponse;
+
+        console.log("PAYMENT GERADO NO MP: ", payment);
 
         await atualizarPedido(pedido.id, {
             mp_payment_id: String(payment.id),
