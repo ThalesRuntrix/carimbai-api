@@ -277,9 +277,15 @@ async function gerarPix(req, res) {
         mp_status_detail: payment.status_detail,
         mp_payment_type: payment.payment_type_id,
         mp_payment_method: payment.payment_method_id,
+        mp_date_approved: payment.date_approved,
+        mp_transaction_amount: payment.transaction_amount,
+        mp_payer_email: payment.payer?.email,
         pix_codigo: qr.qr_code,
         pix_qr_code: qr.qr_code_base64,
-        status_pagamento: "pending"
+        status_pagamento:
+            payment.status === "approved"
+                ? "approved"
+                : "pending"
     });
 
     return res.status(200).json({
@@ -367,7 +373,14 @@ async function pagarCartao(req, res) {
             mp_status_detail: payment.status_detail,
             mp_payment_type: payment.payment_type_id,
             mp_payment_method: payment.payment_method_id,
-            status_pagamento: "pending"
+            mp_date_approved: payment.date_approved,
+            mp_transaction_amount: payment.transaction_amount,
+            mp_authorization_code: payment.authorization_code,
+            mp_payer_email: payment.payer?.email,
+            status_pagamento:
+                payment.status === "approved"
+                    ? "approved"
+                    : "pending"
         });
 
         return res.status(200).json({
