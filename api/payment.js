@@ -336,8 +336,8 @@ async function pagarCartao(req, res) {
                 external_reference:
                     String(pedido.pedido_codigo),
 
-                notification_url:
-                    "https://carimbai-api.vercel.app/api/payment?action=webhook",
+                //notification_url:
+                    //"https://carimbai-api.vercel.app/api/payment?action=webhook",
 
                 payer: montarPayer(pedido)
             }
