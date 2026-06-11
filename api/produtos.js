@@ -31,7 +31,8 @@ export default async function handler(req, res) {
       }
     };
 
-    let select = "*,categorias!inner(nome)";
+    //let select = "*,categorias!inner(nome)";
+    let select = "*,categorias!inner(nome),produto_variacoes(*)";
     let filtros = "";
 
     // 🔥 aplica config da categoria
@@ -79,12 +80,18 @@ export default async function handler(req, res) {
         p.cartoes?.[0] ||
         p.pet?.[0] ||
         null;
+      
+      const imagemPrincipal =
+        p.produto_variacoes?.find(v => v.principal)?.imagem_url
+        || p.produto_variacoes?.[0]?.imagem_url
+        || null;
 
       return {
         id: p.id,
         nome: p.nome,
         preco: p.preco,
         categoria: p.categorias?.nome || null,
+        imagem_url: imagemPrincipal,
         detalhes
       };
     });
