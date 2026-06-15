@@ -21,8 +21,8 @@ export default async function handler(req, res) {
         tabela: "placas",
         filtros: ["tipo_material"]
       },
-      cartao: {
-        tabela: "cartoes",
+      cracha: {
+        tabela: "crachas",
         filtros: ["tipo_material"]
       },
       pet: {
@@ -77,7 +77,7 @@ export default async function handler(req, res) {
       const detalhes =
         p.carimbos?.[0] ||
         p.placas?.[0] ||
-        p.cartoes?.[0] ||
+        p.crachas?.[0] ||
         p.pet?.[0] ||
         null;
       
