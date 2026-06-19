@@ -86,12 +86,19 @@ export default async function handler(req, res) {
         || p.produto_variacoes?.[0]?.imagem_url
         || null;
 
+      const imagens = p.produto_variacoes?.sort((a, b) => {
+          if (a.principal) return -1;
+          if (b.principal) return 1;
+          return 0;
+      }).map(v => v.imagem_url) || [];
+
       return {
         id: p.id,
         nome: p.nome,
         preco: p.preco,
         categoria: p.categorias?.nome || null,
         imagem_url: imagemPrincipal,
+        imagens,
         detalhes
       };
     });
