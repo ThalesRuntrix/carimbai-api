@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     };
 
     //let select = "*,categorias!inner(nome)";
-    let select = "*,categorias!inner(nome),produto_variacoes(*)";
+    let select = "*,categorias!inner(nome),produto_variacoes(*),produto_imagens(*)";
     let filtros = "";
 
     // 🔥 aplica config da categoria
@@ -79,18 +79,13 @@ export default async function handler(req, res) {
         p.placas?.[0] ||
         p.crachas?.[0] ||
         p.pet?.[0] ||
-        null;
-      
-      const imagemPrincipal =
-        p.produto_variacoes?.find(v => v.principal)?.imagem_url
-        || p.produto_variacoes?.[0]?.imagem_url
-        || null;
+        null;      
 
-      const imagens = p.produto_variacoes?.sort((a, b) => {
-          if (a.principal) return -1;
-          if (b.principal) return 1;
-          return 0;
-      }).map(v => v.imagem_url) || [];
+      const imagens =
+        p.produto_imagens?.sort((a, b) => (a.ordem || 0) - (b.ordem || 0))
+          .map(img => img.imagem_url) || [];
+
+      const imagemPrincipal = imagens[0] || null;
 
       return {
         id: p.id,
