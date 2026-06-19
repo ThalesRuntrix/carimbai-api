@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     };
 
     //let select = "*,categorias!inner(nome)";
-    let select = "*,categorias!inner(nome),produto_variacoes(*),produto_imagens(*)";
+    let select = "*,categorias!inner(nome),produto_imagens(*)";
     let filtros = "";
 
     // 🔥 aplica config da categoria
