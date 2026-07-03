@@ -86,6 +86,10 @@ export function formatarPedidoPayload(data) {
     complemento: String(data.complemento || "")
   };
 
+  const variacao = data.variacao
+    ? String(data.variacao).trim()
+    : null;
+
   // =========================
   // RESULTADO
   // =========================
@@ -112,7 +116,8 @@ export function formatarPedidoPayload(data) {
         quantidade: 1,
         preco_unitario: 0,
         personalizacao_txt,
-        personalizacao_img
+        personalizacao_img,
+        variacao
       }
     ]
   };

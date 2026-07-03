@@ -39,8 +39,7 @@ function send(res, status, data) {
 }
 
 export default async function handler(req, res) {
-  console.log(req.body);
-
+  
   if (req.method === "OPTIONS") {
     return send(res, 200, {});
   }
