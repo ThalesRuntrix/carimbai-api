@@ -226,9 +226,10 @@ export default async function handler(req, res) {
           preco_unitario,
           subtotal,
           personalizacao_txt,
-          personalizacao_img
+          personalizacao_img,
+          variacao
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
         [
           pedidoId,
           item.produto_id,
@@ -236,7 +237,8 @@ export default async function handler(req, res) {
           item.preco_unitario,
           item.subtotal,
           item.personalizacao_txt || null,
-          item.personalizacao_img || null
+          item.personalizacao_img || null,
+          item.variacao || null
         ]
       );
     }
