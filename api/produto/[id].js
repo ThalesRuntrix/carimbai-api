@@ -29,19 +29,51 @@ export default async function handler(req, res) {
 
     const p = data[0];
 
+    // =========================
+    // AGRUPA AS IMAGENS POR COR
+    // =========================
+
+    const imagensPorCor = {};
+
+    (p.produto_imagens || []).forEach(img => {
+
+      const cor = img.cor;
+
+      if (!imagensPorCor[cor]) {
+        imagensPorCor[cor] = [];
+      }
+
+      imagensPorCor[cor].push({
+        id: img.id,
+        tipo: img.tipo,
+        ordem: img.ordem,
+        imagem_url: img.imagem_url
+      });
+
+    });
+
+    // ordena pelas posições cadastradas
+    Object.values(imagensPorCor).forEach(lista =>
+      lista.sort((a, b) => a.ordem - b.ordem)
+    );
+
     // 🔥 FORMATAÇÃO FINAL
     const produto = {
       id: p.id,
       nome: p.nome,
       preco: p.preco,
       categoria: p.categorias?.nome || null,
-      imagens: p.produto_imagens || null,
+
       variacoes: (p.produto_variacoes || []).map(v => ({
+
         cor: v.cor,
         hex: v.hex,
-        imagem_url: v.imagem_url,
-        preco: v.preco
+        preco: v.preco,
+
+        imagens: imagensPorCor[v.cor] || []
+
       }))
+
     };
 
     res.status(200).json(produto);
