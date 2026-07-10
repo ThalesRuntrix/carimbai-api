@@ -55,6 +55,27 @@ export default async function handler(req, res) {
         await marcarComoProduzido(chatId, pedidoId);
     }
 
+    // ação: marcar como enviado
+    if (data.startsWith("enviado:")) {
+        const pedidoId = data.split(":")[1];
+
+        await marcarComoEnviado(chatId, pedidoId);
+    }
+
+    // ação: marcar como entregue
+    if (data.startsWith("entregue:")) {
+        const pedidoId = data.split(":")[1];
+
+        await marcarComoEntregue(chatId, pedidoId);
+    }
+
+    // ação: marcar como cancelado
+    if (data.startsWith("cancelado:")) {
+        const pedidoId = data.split(":")[1];
+
+        await marcarComoCancelado(chatId, pedidoId);
+    }
+
     return res.status(200).json({ ok: true });
     }
 
@@ -91,6 +112,9 @@ export default async function handler(req, res) {
     const commands = {
       "/pedidos": () => responderPedidos(chatId),
       "/produzido": () => marcarComoProduzido(chatId, args[0]),
+      "/enviado": () => marcarComoEnviado(chatId, args[0]),
+      "/entregue": () => marcarComoEntregue(chatId, args[0]),
+      "/cancelado": () => marcarComoCancelado(chatId, args[0]),
     };
 
     if (commands[command]) {
@@ -110,9 +134,7 @@ export default async function handler(req, res) {
 }
 
 
-// =========================
-// 📦 LISTAR PEDIDOS
-// =========================
+//LISTAR PEDIDOS
 async function responderPedidos(chatId) {
   try {
 
@@ -152,9 +174,7 @@ async function responderPedidos(chatId) {
   }
 }
 
-// =========================
-// 🏭 MARCAR COMO PRODUZIDO
-// =========================
+//MARCAR COMO PRODUZIDO
 async function marcarComoProduzido(chatId, pedidoId) {
 
   try {
@@ -196,6 +216,150 @@ async function marcarComoProduzido(chatId, pedidoId) {
 
   } catch (error) {
     console.error("Erro marcarComoProduzido:", error);
+    await enviarTelegram({
+      mensagem: "❌ Erro interno"
+    });
+  }
+}
+
+//MARCAR COMO ENVIADO
+async function marcarComoEnviado(chatId, pedidoId) {
+
+  try {
+
+    const id = Number(pedidoId);
+
+    if (!id || isNaN(id)) {
+      return enviarTelegram({ mensagem: "❌ ID inválido" });
+    }
+
+    const response = await fetch(
+      `${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${encodeURIComponent(id)}`,
+      {
+        method: "PATCH",
+        headers: {
+          apikey: process.env.SUPABASE_KEY,
+          Authorization: `Bearer ${process.env.SUPABASE_KEY}`,
+          "Content-Type": "application/json",
+          Prefer: "return=representation"
+        },
+        body: JSON.stringify({
+          status_pedido: "enviado"
+        })
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || !result.length) {
+      console.error("Erro ao atualizar pedido");
+      return enviarTelegram({
+        mensagem: "❌ Erro ao atualizar pedido"
+      });
+    }
+
+    await enviarTelegram({
+      mensagem: `✅ Pedido ${id} marcado como enviado`
+    });
+
+  } catch (error) {
+    console.error("Erro marcarComoEnviado:", error);
+    await enviarTelegram({
+      mensagem: "❌ Erro interno"
+    });
+  }
+}
+
+//MARCAR COMO ENTREGUE
+async function marcarComoEntregue(chatId, pedidoId) {
+
+  try {
+
+    const id = Number(pedidoId);
+
+    if (!id || isNaN(id)) {
+      return enviarTelegram({ mensagem: "❌ ID inválido" });
+    }
+
+    const response = await fetch(
+      `${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${encodeURIComponent(id)}`,
+      {
+        method: "PATCH",
+        headers: {
+          apikey: process.env.SUPABASE_KEY,
+          Authorization: `Bearer ${process.env.SUPABASE_KEY}`,
+          "Content-Type": "application/json",
+          Prefer: "return=representation"
+        },
+        body: JSON.stringify({
+          status_pedido: "entregue"
+        })
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || !result.length) {
+      console.error("Erro ao atualizar pedido");
+      return enviarTelegram({
+        mensagem: "❌ Erro ao atualizar pedido"
+      });
+    }
+
+    await enviarTelegram({
+      mensagem: `✅ Pedido ${id} marcado como entregue`
+    });
+
+  } catch (error) {
+    console.error("Erro marcarComoEntregue:", error);
+    await enviarTelegram({
+      mensagem: "❌ Erro interno"
+    });
+  }
+}
+
+//MARCAR COMO CANCELADO
+async function marcarComoCancelado(chatId, pedidoId) {
+
+  try {
+
+    const id = Number(pedidoId);
+
+    if (!id || isNaN(id)) {
+      return enviarTelegram({ mensagem: "❌ ID inválido" });
+    }
+
+    const response = await fetch(
+      `${process.env.SUPABASE_URL}/rest/v1/pedidos?id=eq.${encodeURIComponent(id)}`,
+      {
+        method: "PATCH",
+        headers: {
+          apikey: process.env.SUPABASE_KEY,
+          Authorization: `Bearer ${process.env.SUPABASE_KEY}`,
+          "Content-Type": "application/json",
+          Prefer: "return=representation"
+        },
+        body: JSON.stringify({
+          status_pedido: "cancelado"
+        })
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || !result.length) {
+      console.error("Erro ao atualizar pedido");
+      return enviarTelegram({
+        mensagem: "❌ Erro ao atualizar pedido"
+      });
+    }
+
+    await enviarTelegram({
+      mensagem: `✅ Pedido ${id} marcado como cancelado`
+    });
+
+  } catch (error) {
+    console.error("Erro marcarComoCancelado:", error);
     await enviarTelegram({
       mensagem: "❌ Erro interno"
     });
