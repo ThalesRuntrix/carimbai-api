@@ -320,6 +320,8 @@ async function pagarCartao(req, res) {
         }
         
         const pedido = await buscarPedido(pedido_id);
+
+        const itens = await buscarItensPedido(pedido.id);
                 
         if (!pedido) {
             return res.status(404).json({
@@ -337,6 +339,12 @@ async function pagarCartao(req, res) {
             throw new Error("CPF obrigatório");
         }
 
+        if (!itens) {
+            return res.status(404).json({
+                error: "Item(s) do pedido não localizado(s)"
+            });
+        }
+
         const paymentResponse = await paymentApi.create({
             body: {
                 transaction_amount:
@@ -352,10 +360,16 @@ async function pagarCartao(req, res) {
                 external_reference:
                     String(pedido.pedido_codigo),
 
+                description: `Compra na Carimbai ref. pedido ${pedido.pedido_codigo}`,
+
                 notification_url:
                     "https://carimbai-api.vercel.app/api/payment?action=webhook",
+                
+                statement_descriptor: "CARIMBAI",
 
-                payer: montarPayerCartao(pedido, formData)
+                payer: montarPayerCartao(pedido, formData),
+
+                items: montarItems(itens)
             }
         });
 
@@ -413,6 +427,7 @@ async function pagarCartao(req, res) {
 // WEBHOOK
 // =====================================================
 import crypto from "crypto";
+import { montarItems } from "../lib/montarItems.js";
 
 async function webhook(req, res) {
     try {
@@ -844,7 +859,7 @@ function montarPayerCartao(
         email:
             payerForm.email ||
             pedido.email_cliente ||
-            "comprador@carimbai.com.br",
+            "email@runtrix.com.br",
 
         first_name:
             pedido.nome_cliente
@@ -877,7 +892,48 @@ function montarPayerCartao(
 
             number:
                 telefone?.slice(2)
+        },
+
+        address: {
+            zip_code: pedido.cep || undefined,
+            street_name: pedido.rua || undefined,
+            street_number: Number(pedido.numero) || undefined
         }
 
     };
+}
+
+async function buscarItensPedido(pedidoId) {
+
+    const response = await fetch(
+        `${process.env.SUPABASE_URL}/rest/v1/pedido_itens?pedido_id=eq.${pedidoId}&select=*,produto:produtos(id,nome)`,
+        {
+            headers: {
+                apikey: process.env.SUPABASE_KEY,
+                Authorization: `Bearer ${process.env.SUPABASE_KEY}`
+            }
+        }
+    );
+
+    return await response.json();
+}
+
+function montarItems(itens) {
+
+    return itens.map(item => ({
+
+        id: String(item.produto_id),
+
+        title: item.produto.nome,
+
+        description:
+            item.personalizacao_txt ||
+            item.produto.nome,
+
+        quantity: item.quantidade,
+
+        unit_price: Number(item.preco_unitario)
+
+    }));
+
 }
