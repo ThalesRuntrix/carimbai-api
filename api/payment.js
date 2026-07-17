@@ -369,7 +369,9 @@ async function pagarCartao(req, res) {
 
                 payer: montarPayerCartao(pedido, formData),
 
-                items: montarItems(itens)
+                additional_info: {
+                    items: await montarItems(pedido.id)
+                }
             }
         });
 
@@ -926,8 +928,9 @@ function montarItems(itens) {
         title: item.produto.nome,
 
         description:
-            item.personalizacao_txt ||
-            item.produto.nome,
+            item.variacao
+                ? `${produto.nome} - ${item.variacao}`
+                : produto.nome,
 
         quantity: item.quantidade,
 
