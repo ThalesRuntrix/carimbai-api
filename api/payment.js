@@ -427,7 +427,6 @@ async function pagarCartao(req, res) {
 // WEBHOOK
 // =====================================================
 import crypto from "crypto";
-import { montarItems } from "../lib/montarItems.js";
 
 async function webhook(req, res) {
     try {
