@@ -376,11 +376,7 @@ async function pagarCartao(req, res) {
         });
 
         const payment = paymentResponse.response || paymentResponse;
-
-        console.log(
-            "CARD PAYMENT:",
-            JSON.stringify(payment, null, 2)
-        );
+        
 
         await atualizarPedido(pedido.id, {
             mp_payment_id: String(payment.id),
@@ -920,9 +916,6 @@ async function buscarItensPedido(pedidoId) {
 }
 
 function montarItems(itens) {
-
-    console.log("RETORNO ITENS:", itens);
-    console.log("É array?", Array.isArray(itens));
 
     return itens.map(item => ({
 
