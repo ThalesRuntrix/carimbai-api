@@ -339,11 +339,11 @@ async function pagarCartao(req, res) {
             throw new Error("CPF obrigatório");
         }
 
-        if (!itens) {
+        if (!itens.length) {
             return res.status(404).json({
                 error: "Item(s) do pedido não localizado(s)"
             });
-        }
+}
 
         const paymentResponse = await paymentApi.create({
             body: {
@@ -370,7 +370,7 @@ async function pagarCartao(req, res) {
                 payer: montarPayerCartao(pedido, formData),
 
                 additional_info: {
-                    items: await montarItems(pedido.id)
+                    items: await montarItems(itens)
                 }
             }
         });
@@ -921,6 +921,9 @@ async function buscarItensPedido(pedidoId) {
 
 function montarItems(itens) {
 
+    console.log("RETORNO ITENS:", itens);
+    console.log("É array?", Array.isArray(itens));
+
     return itens.map(item => ({
 
         id: String(item.produto_id),
@@ -929,8 +932,8 @@ function montarItems(itens) {
 
         description:
             item.variacao
-                ? `${produto.nome} - ${item.variacao}`
-                : produto.nome,
+                ? `${item.produto.nome} - ${item.variacao}`
+                : item.produto.nome,
 
         quantity: item.quantidade,
 
