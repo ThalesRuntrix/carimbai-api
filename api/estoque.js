@@ -29,6 +29,47 @@ function validarId(value) {
   return id;
 }
 
+function verificarSenha(req) {
+  const senha = req.headers["x-backoffice-password"];
+
+  if (!senha) {
+    return false;
+  }
+
+  return senha === process.env.BACKOFFICE_PASSWORD;
+}
+
+const loginRateLimitMap = new Map();
+function rateLimitLogin(req, limit = 5, windowMs = 60000) {
+
+  const ip =
+    req.headers["x-forwarded-for"]?.split(",")[0] ||
+    req.socket?.remoteAddress ||
+    "unknown";
+
+  const now = Date.now();
+
+  if (!loginRateLimitMap.has(ip)) {
+    loginRateLimitMap.set(ip, []);
+  }
+
+  const timestamps = loginRateLimitMap.get(ip);
+
+  const recent = timestamps.filter(
+    t => now - t < windowMs
+  );
+
+  if (recent.length >= limit) {
+    return false;
+  }
+
+  recent.push(now);
+
+  loginRateLimitMap.set(ip, recent);
+
+  return true;
+}
+
 
 // ======================================================
 // GET - LISTA ESTOQUE
@@ -356,6 +397,46 @@ export default async function handler(req, res) {
 
   if (req.method === "OPTIONS") {
     return send(res, 200, {});
+  }
+
+  // =========================
+  // LOGIN
+  // =========================
+  if (acao === "login") {
+
+    if (!rateLimitLogin(req)) {
+      return res.status(429).json({
+        error: "Muitas tentativas. Tente novamente em instantes."
+      });
+    }
+
+    const { senha } = req.body || {};
+
+    if (!senha) {
+      return res.status(400).json({
+        error: "Senha não informada"
+      });
+    }
+
+    if (senha !== process.env.BACKOFFICE_PASSWORD) {
+      return res.status(401).json({
+        error: "Senha incorreta"
+      });
+    }
+
+    return res.status(200).json({
+      autenticado: true
+    });
+  }
+
+
+  // =========================
+  // AUTENTICAÇÃO
+  // =========================
+  if (!verificarSenha(req)) {
+    return res.status(401).json({
+      error: "Não autorizado"
+    });
   }
 
   try {
