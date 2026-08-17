@@ -1,4 +1,4 @@
-import { pool } from "../../lib/db.js";
+import { pool } from "../../../lib/db.js";
 
 function send(res, status, data) {
   res.setHeader(
@@ -44,43 +44,38 @@ export default async function handler(req, res) {
     const result = await pool.query(
       `
       SELECT
-        ps.id,
-        ps.produto_id,
-        p.nome AS produto,
-        p.preco,
-        ps.produto_variacao_id,
-        pv.cor AS variacao_cor,
-        pv.hex,
-        ps.sku,
-        ps.nome AS sku_nome,
-        ps.cor,
-        ps.estoque,
-        ps.estoque_minimo,
-        ps.ativo
-      FROM produto_skus ps
-      INNER JOIN produtos p
-        ON p.id = ps.produto_id
-      LEFT JOIN produto_variacoes pv
-        ON pv.id = ps.produto_variacao_id
-      WHERE ps.id = $1
+        me.id,
+        me.produto_sku_id,
+        me.tipo,
+        me.quantidade,
+        me.estoque_anterior,
+        me.estoque_posterior,
+        me.motivo,
+        me.pedido_id,
+        me.observacao,
+        me.created_at,
+        p.pedido_codigo
+      FROM movimentacoes_estoque me
+      LEFT JOIN pedidos p
+        ON p.id = me.pedido_id
+      WHERE me.produto_sku_id = $1
+      ORDER BY me.created_at DESC, me.id DESC
       `,
       [Number(id)]
     );
 
-    if (result.rows.length === 0) {
-      return send(res, 404, {
-        error: "SKU não encontrado"
-      });
-    }
-
-    return send(res, 200, result.rows[0]);
+    return send(res, 200, result.rows);
 
   } catch (err) {
 
-    console.error("Erro ao buscar SKU:", err);
+    console.error(
+      "Erro ao buscar movimentações:",
+      err
+    );
 
     return send(res, 500, {
-      error: "Erro ao buscar SKU"
+      error: "Erro ao buscar movimentações"
     });
   }
 }
+
