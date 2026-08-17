@@ -2,19 +2,19 @@ import { pool } from "../lib/db.js";
 
 function send(res, status, data) {
   res.setHeader(
-    "Access-Control-Allow-Origin",
-    "https://runtrix.com.br"
-  );
+  "Access-Control-Allow-Origin",
+  "https://runtrix.com.br"
+);
 
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET,POST,OPTIONS"
-  );
+res.setHeader(
+  "Access-Control-Allow-Methods",
+  "GET,POST,PATCH,OPTIONS"
+);
 
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type"
-  );
+res.setHeader(
+  "Access-Control-Allow-Headers",
+  "Content-Type, X-Backoffice-Password"
+);
 
   return res.status(status).json(data);
 }
