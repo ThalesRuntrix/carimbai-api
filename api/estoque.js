@@ -395,6 +395,8 @@ async function registrarMovimentacao(req, res) {
 
 export default async function handler(req, res) {
 
+  const { acao } = req.query;
+  
   if (req.method === "OPTIONS") {
     return send(res, 200, {});
   }
@@ -405,7 +407,7 @@ export default async function handler(req, res) {
   if (acao === "login") {
 
     if (!rateLimitLogin(req)) {
-      return res.status(429).json({
+      return send(res, 429, {
         error: "Muitas tentativas. Tente novamente em instantes."
       });
     }
@@ -413,21 +415,21 @@ export default async function handler(req, res) {
     const { senha } = req.body || {};
 
     if (!senha) {
-      return res.status(400).json({
+      return send(res, 400, {
         error: "Senha não informada"
       });
     }
 
     if (senha !== process.env.BACKOFFICE_PASSWORD) {
-      return res.status(401).json({
+      return send(res, 401, {
         error: "Senha incorreta"
       });
     }
 
-    return res.status(200).json({
+    return send(res, 200, {
       autenticado: true
     });
-  }
+}
 
 
   // =========================
