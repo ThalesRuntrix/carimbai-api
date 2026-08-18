@@ -192,6 +192,110 @@ async function buscarSKU(req, res, id) {
   return send(res, 200, result.rows[0]);
 }
 
+// ======================================================
+// PATCH - EDITAR SKU
+// ======================================================
+
+async function editarSKU(req, res) {
+
+  const {
+    produto_sku_id,
+    estoque_minimo,
+    ativo
+  } = req.body || {};
+
+  // ----------------------------
+  // ID do SKU
+  // ----------------------------
+
+  const skuId = validarId(produto_sku_id);
+
+  if (!skuId) {
+    return send(res, 400, {
+      error: "produto_sku_id inválido"
+    });
+  }
+
+  // ----------------------------
+  // estoque mínimo
+  // ----------------------------
+
+  const estoqueMinimo = Number(estoque_minimo);
+
+  if (
+    !Number.isInteger(estoqueMinimo) ||
+    estoqueMinimo < 0
+  ) {
+    return send(res, 400, {
+      error: "estoque_minimo inválido"
+    });
+  }
+
+  // ----------------------------
+  // ativo
+  // ----------------------------
+
+  if (typeof ativo !== "boolean") {
+    return send(res, 400, {
+      error: "ativo deve ser booleano"
+    });
+  }
+
+  try {
+
+    const result = await pool.query(
+      `
+      UPDATE produto_skus
+      SET
+        estoque_minimo = $1,
+        ativo = $2
+      WHERE id = $3
+      RETURNING
+        id,
+        produto_id,
+        produto_variacao_id,
+        sku,
+        nome,
+        cor,
+        estoque,
+        estoque_minimo,
+        ativo
+      `,
+      [
+        estoqueMinimo,
+        ativo,
+        skuId
+      ]
+    );
+
+    // ----------------------------
+    // SKU não encontrado
+    // ----------------------------
+
+    if (result.rows.length === 0) {
+      return send(res, 404, {
+        error: "SKU não encontrado"
+      });
+    }
+
+    return send(res, 200, {
+      mensagem: "SKU atualizado com sucesso",
+      sku: result.rows[0]
+    });
+
+  } catch (err) {
+
+    console.error(
+      "Erro ao editar SKU:",
+      err
+    );
+
+    return send(res, 500, {
+      error: "Erro ao editar SKU"
+    });
+  }
+}
+
 
 // ======================================================
 // GET - HISTÓRICO
@@ -509,6 +613,13 @@ export default async function handler(req, res) {
     // ==================================================
 
     if (req.method === "POST") {
+
+      if (acao === "editar-sku") {
+        return await editarSKU(
+          req,
+          res
+        );
+      }
 
       return await registrarMovimentacao(
         req,
