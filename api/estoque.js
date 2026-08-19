@@ -586,10 +586,12 @@ async function atualizarSKU(req, res, id) {
 
 export default async function handler(req, res) {
 
-  console.log("=== ESTOQUE REQUEST ===");
+  console.log("================================");
+  console.log("API ESTOQUE REQUEST");
   console.log("METHOD:", req.method);
   console.log("URL:", req.url);
   console.log("QUERY:", req.query);
+  console.log("================================");
 
   const { acao } = req.query;
   
@@ -749,8 +751,18 @@ export default async function handler(req, res) {
     // MÉTODO NÃO PERMITIDO
     // ==================================================
 
+    //return send(res, 405, {
+      //error: "Método não permitido"
+    //});
+    console.log("!!! 405 !!!");
+    console.log("METHOD:", req.method);
+    console.log("URL:", req.url);
+    console.log("QUERY:", req.query);
+
     return send(res, 405, {
-      error: "Método não permitido"
+      error: "Método não permitido",
+      metodo: req.method,
+      url: req.url
     });
 
   } catch (err) {
