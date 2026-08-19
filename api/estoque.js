@@ -492,6 +492,93 @@ async function registrarMovimentacao(req, res) {
   }
 }
 
+// ======================================================
+// PATCH - ATUALIZAR SKU
+// ======================================================
+
+async function atualizarSKU(req, res, id) {
+
+  const {
+    estoque_minimo,
+    ativo
+  } = req.body || {};
+
+  // ----------------------------
+  // estoque_minimo
+  // ----------------------------
+
+  const estoqueMinimo = Number(estoque_minimo);
+
+  if (
+    !Number.isInteger(estoqueMinimo) ||
+    estoqueMinimo < 0
+  ) {
+    return send(res, 400, {
+      error: "Estoque mínimo inválido"
+    });
+  }
+
+  // ----------------------------
+  // ativo
+  // ----------------------------
+
+  if (typeof ativo !== "boolean") {
+    return send(res, 400, {
+      error: "Campo ativo inválido"
+    });
+  }
+
+  // ----------------------------
+  // verifica se SKU existe
+  // ----------------------------
+
+  const existente = await pool.query(
+    `
+    SELECT id
+    FROM produto_skus
+    WHERE id = $1
+    `,
+    [id]
+  );
+
+  if (existente.rows.length === 0) {
+    return send(res, 404, {
+      error: "SKU não encontrado"
+    });
+  }
+
+  // ----------------------------
+  // atualização
+  // ----------------------------
+
+  const result = await pool.query(
+    `
+    UPDATE produto_skus
+    SET
+      estoque_minimo = $1,
+      ativo = $2
+    WHERE id = $3
+    RETURNING
+      id,
+      produto_id,
+      produto_variacao_id,
+      sku,
+      nome AS sku_nome,
+      cor,
+      estoque,
+      estoque_minimo,
+      ativo
+    `,
+    [
+      estoqueMinimo,
+      ativo,
+      id
+    ]
+  );
+
+  return send(res, 200, result.rows[0]);
+}
+
 
 // ======================================================
 // HANDLER PRINCIPAL
@@ -626,6 +713,30 @@ export default async function handler(req, res) {
         res
       );
     }
+    
+
+    // ==================================================
+    // PATCH
+    // ==================================================
+
+    if (req.method === "PATCH") {
+
+      const skuId = validarId(req.query.id);
+
+      if (!skuId) {
+
+        return send(res, 400, {
+          error: "ID do SKU inválido"
+        });
+      }
+
+      return await atualizarSKU(
+        req,
+        res,
+        skuId
+      );
+    }
+
 
     // ==================================================
     // MÉTODO NÃO PERMITIDO
