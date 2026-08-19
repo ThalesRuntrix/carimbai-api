@@ -586,6 +586,11 @@ async function atualizarSKU(req, res, id) {
 
 export default async function handler(req, res) {
 
+  console.log("=== ESTOQUE REQUEST ===");
+  console.log("METHOD:", req.method);
+  console.log("URL:", req.url);
+  console.log("QUERY:", req.query);
+
   const { acao } = req.query;
   
   if (req.method === "OPTIONS") {
@@ -713,7 +718,7 @@ export default async function handler(req, res) {
         res
       );
     }
-    
+
 
     // ==================================================
     // PATCH
@@ -721,7 +726,9 @@ export default async function handler(req, res) {
 
     if (req.method === "PATCH") {
 
+      console.log("=== PATCH DETECTADO ===");
       const skuId = validarId(req.query.id);
+      console.log("SKU ID:", skuId);
 
       if (!skuId) {
 
