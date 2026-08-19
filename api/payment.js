@@ -242,6 +242,12 @@ async function gerarPix(req, res) {
         });
     }
 
+    console.log("CARD TOKEN RECEBIDO:", {
+        exists: Boolean(token),
+        length: token?.length,
+        prefix: token?.slice(0, 8)
+    });
+    
     const payment = await paymentApi.create({
         body: {
             transaction_amount: Number(pedido.total),
