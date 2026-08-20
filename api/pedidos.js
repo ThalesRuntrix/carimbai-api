@@ -125,27 +125,96 @@ export default async function handler(req, res) {
     }
 
     // ============================
-    // 🔥 PRODUTOS + TOTAL
+    // 🔥 PRODUTOS + SKU + TOTAL
     // ============================
     let total = 0;
 
     for (const item of itens) {
 
-      if (!item.produto_id || item.quantidade <= 0 || item.quantidade > 50) {
+      if (
+        !item.produto_id ||
+        !item.produto_sku_id ||
+        item.quantidade <= 0 ||
+        item.quantidade > 50
+      ) {
         throw new Error("Item inválido");
       }
 
-      const produto = await client.query(
-        `SELECT preco FROM produtos WHERE id = $1`,
-        [item.produto_id]
+      // ==========================================
+      // 🔎 BUSCA SKU + PRODUTO
+      // ==========================================
+
+      const skuResult = await client.query(
+        `
+          SELECT
+            ps.id,
+            ps.produto_id,
+            ps.preco AS preco_sku,
+            ps.estoque,
+            ps.ativo,
+            p.preco AS preco_produto
+
+          FROM produto_skus ps
+
+          INNER JOIN produtos p
+            ON p.id = ps.produto_id
+
+          WHERE ps.id = $1
+            AND ps.produto_id = $2
+
+          LIMIT 1
+        `,
+        [
+          item.produto_sku_id,
+          item.produto_id
+        ]
       );
 
-      if (produto.rows.length === 0) {
-        throw new Error(`Produto inválido: ${item.produto_id}`);
+      if (skuResult.rows.length === 0) {
+        throw new Error(
+          `SKU inválido: ${item.produto_sku_id}`
+        );
       }
 
-      const preco = Number(produto.rows[0].preco);
-      const subtotal = preco * item.quantidade;
+      const sku = skuResult.rows[0];
+
+      // ==========================================
+      // 🔒 SKU ATIVO
+      // ==========================================
+
+      if (!sku.ativo) {
+        throw new Error(
+          `SKU indisponível: ${item.produto_sku_id}`
+        );
+      }
+
+      // ==========================================
+      // 📦 ESTOQUE
+      // ==========================================
+
+      if (sku.estoque < item.quantidade) {
+        throw new Error(
+          `Estoque insuficiente para o SKU ${item.produto_sku_id}`
+        );
+      }
+
+      // ==========================================
+      // 💰 PREÇO
+      // ==========================================
+
+      const preco =
+        sku.preco_sku !== null
+          ? Number(sku.preco_sku)
+          : Number(sku.preco_produto);
+
+      if (!Number.isFinite(preco) || preco < 0) {
+        throw new Error(
+          `Preço inválido para o SKU ${item.produto_sku_id}`
+        );
+      }
+
+      const subtotal =
+        preco * item.quantidade;
 
       item.preco_unitario = preco;
       item.subtotal = subtotal;
@@ -222,6 +291,7 @@ export default async function handler(req, res) {
         `INSERT INTO pedido_itens (
           pedido_id,
           produto_id,
+          produto_sku_id,
           quantidade,
           preco_unitario,
           subtotal,
@@ -229,10 +299,11 @@ export default async function handler(req, res) {
           personalizacao_img,
           variacao
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
         [
           pedidoId,
           item.produto_id,
+          item.produto_sku_id,
           item.quantidade,
           item.preco_unitario,
           item.subtotal,
