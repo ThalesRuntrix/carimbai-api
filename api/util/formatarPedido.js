@@ -54,12 +54,18 @@ export function formatarPedidoPayload(data) {
   const prazo = Number(data.frete_prazo) || 0;
 
   // =========================
-  // PRODUTO
+  // PRODUTO + SKU
   // =========================
   const produto_id = Number(data.produto_id);
 
   if (!Number.isInteger(produto_id) || produto_id <= 0) {
     throw new Error("Produto inválido");
+  }
+
+  const produto_sku_id = Number(data.produto_sku_id);
+
+  if (!Number.isInteger(produto_sku_id) || produto_sku_id <= 0) {
+    throw new Error("SKU inválido");
   }
 
   // =========================
@@ -113,6 +119,7 @@ export function formatarPedidoPayload(data) {
     itens: [
       {
         produto_id,
+        produto_sku_id,
         quantidade: 1,
         preco_unitario: 0,
         personalizacao_txt,
