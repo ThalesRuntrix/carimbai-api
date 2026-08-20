@@ -33,7 +33,7 @@ export default async function handler(req, res) {
     const url =
       `${process.env.SUPABASE_URL}/rest/v1/produtos` +
       `?id=eq.${id}` +
-      `&select=*,categorias(nome),produto_variacoes(*),produto_imagens(*),,produto_skus(*)`;
+      `&select=*,categorias(nome),produto_variacoes(*),produto_imagens(*),produto_skus(*)`;
 
     const response = await fetch(url, {
       headers: {
