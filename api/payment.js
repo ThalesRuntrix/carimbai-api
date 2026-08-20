@@ -241,12 +241,6 @@ async function gerarPix(req, res) {
             error: "Pedido já pago"
         });
     }
-
-    console.log("CARD TOKEN RECEBIDO:", {
-        exists: Boolean(token),
-        length: token?.length,
-        prefix: token?.slice(0, 8)
-    });
     
     const payment = await paymentApi.create({
         body: {
@@ -305,7 +299,7 @@ async function gerarPix(req, res) {
 }
 
 // =====================================================
-// CARTÃO BRICKS
+// CARTÃO CHECKOUT TRANSPARENTE
 // =====================================================
 async function pagarCartao(req, res) {
 
@@ -324,6 +318,12 @@ async function pagarCartao(req, res) {
                 error: "Dados inválidos"
             });
         }
+
+        console.log("CARD TOKEN RECEBIDO:", {
+            exists: Boolean(token),
+            length: token?.length,
+            prefix: token?.slice(0, 8)
+        });
         
         const pedido = await buscarPedido(pedido_id);
 
