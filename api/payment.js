@@ -327,13 +327,14 @@ async function pagarCartao(req, res) {
         
         const pedido = await buscarPedido(pedido_id);
 
-        const itens = await buscarItensPedido(pedido.id);
-                
         if (!pedido) {
             return res.status(404).json({
                 error: "Pedido não encontrado"
             });
         }
+
+        const itens = await buscarItensPedido(pedido.id);               
+        
 
         if (pedido.status_pagamento === "approved") {
             return res.status(400).json({
