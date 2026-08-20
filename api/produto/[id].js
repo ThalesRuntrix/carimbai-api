@@ -33,7 +33,7 @@ export default async function handler(req, res) {
     const url =
       `${process.env.SUPABASE_URL}/rest/v1/produtos` +
       `?id=eq.${id}` +
-      `&select=*,categorias(nome),produto_variacoes(*),produto_imagens(*)`;
+      `&select=*,categorias(nome),produto_variacoes(*),produto_imagens(*),,produto_skus(*)`;
 
     const response = await fetch(url, {
       headers: {
@@ -41,6 +41,18 @@ export default async function handler(req, res) {
         Authorization: `Bearer ${process.env.SUPABASE_KEY}`,
       },
     });
+
+    if (!response.ok) {
+
+      const erro = await response.text();
+
+      console.error("ERRO SUPABASE PRODUTO:", erro);
+
+      return res.status(500).json({
+        error: "Erro ao buscar produto"
+      });
+
+    }
 
     const data = await response.json();
 
@@ -75,11 +87,15 @@ export default async function handler(req, res) {
 
     });
 
-    // Ordena pela ordem cadastrada
+    // =========================================================
+    // ORDENA IMAGENS
+    // =========================================================
 
     Object.values(imagensPorCor).forEach(lista => {
 
-      lista.sort((a, b) => a.ordem - b.ordem);
+      lista.sort((a, b) => {
+        return (a.ordem ?? 0) - (b.ordem ?? 0);
+      });
 
     });
 
@@ -96,7 +112,7 @@ export default async function handler(req, res) {
       gruposDeImagem[0] === "sem_cor";
 
     // =========================
-    // FUNÇÃO AUXILIAR
+    // FUNÇÃO AUXILIAR PARA IMAGENS
     // =========================
 
     function obterImagensDaVariacao(cor) {
@@ -109,19 +125,93 @@ export default async function handler(req, res) {
 
     }
 
+    // =========================================================
+    // SKUs
+    // =========================================================
+
+    const skus = p.produto_skus || [];
+
+    // =========================================================
+    // FUNÇÃO AUXILIAR
+    // ENCONTRA O SKU DE UMA VARIAÇÃO
+    // =========================================================
+
+    function obterSkuDaVariacao(variacaoId) {
+
+      return skus.find(sku =>
+        sku.produto_variacao_id === variacaoId
+      ) || null;
+
+    }
+
+    // =========================================================
+    // PREÇO EFETIVO DO SKU
+    // =========================================================
+
+    function obterPrecoSku(sku) {
+
+      if (
+        sku &&
+        sku.preco !== null &&
+        sku.preco !== undefined
+      ) {
+        return Number(sku.preco);
+      }
+
+      return Number(p.preco);
+
+    }
+
+    // =========================================================
+    // DISPONIBILIDADE
+    // =========================================================
+
+    function verificarDisponibilidade(sku) {
+
+      if (!sku) {
+        return false;
+      }
+
+      return (
+        sku.ativo === true &&
+        Number(sku.estoque) > 0
+      );
+
+    }
+
     // =========================
     // VARIAÇÕES
     // =========================
 
-    let variacoes = (p.produto_variacoes || []).map(v => ({
+    let variacoes = (p.produto_variacoes || []).map(v => {
 
-      cor: v.cor,
-      hex: v.hex,
-      preco: v.preco,
+      const sku = obterSkuDaVariacao(v.id);
 
-      imagens: obterImagensDaVariacao(v.cor)
+      return {
 
-    }));
+        id: v.id,
+
+        cor: v.cor,
+
+        hex: v.hex,
+
+        sku_id: sku?.id || null,
+
+        preco: obterPrecoSku(sku),
+
+        estoque: sku
+          ? Number(sku.estoque)
+          : 0,
+
+        disponivel:
+          verificarDisponibilidade(sku),
+
+        imagens:
+          obterImagensDaVariacao(v.cor)
+
+      };
+
+    });
 
     // =========================
     // PRODUTOS SEM VARIAÇÃO
@@ -129,15 +219,30 @@ export default async function handler(req, res) {
 
     if (variacoes.length === 0) {
 
+      const sku = skus.find(sku =>
+        sku.produto_variacao_id === null
+      ) || null;
+
       variacoes = [
 
         {
+
+          id: null,
 
           cor: null,
 
           hex: null,
 
-          preco: p.preco,
+          sku_id: sku?.id || null,
+
+          preco: obterPrecoSku(sku),
+
+          estoque: sku
+            ? Number(sku.estoque)
+            : 0,
+
+          disponivel:
+            verificarDisponibilidade(sku),
 
           imagens:
             imagensPorCor["sem_cor"] || []
@@ -147,6 +252,7 @@ export default async function handler(req, res) {
       ];
 
     }
+
 
     // =========================
     // RETORNO
@@ -170,9 +276,12 @@ export default async function handler(req, res) {
 
   } catch (err) {
 
-    console.error("ERRO COMPLETO:", err);
+    console.error(
+      "ERRO COMPLETO /api/produto/[id]:",
+      err
+    );
 
-    res.status(500).json({
+    return res.status(500).json({
       error: "Erro ao buscar produto"
     });
 
