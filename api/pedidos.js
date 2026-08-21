@@ -60,6 +60,10 @@ export default async function handler(req, res) {
 
   try {
     const payload = formatarPedidoPayload(req.body);
+    console.log(
+      "PAYLOAD FORMATADO:",
+      JSON.stringify(payload, null, 2)
+    );
 
     const {
       cliente,
