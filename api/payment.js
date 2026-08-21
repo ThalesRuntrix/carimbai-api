@@ -480,6 +480,19 @@ async function webhook(req, res) {
         const requestId =
             req.headers["x-request-id"];
 
+        console.log(
+            "WEBHOOK ASSINATURA DEBUG:",
+            {
+                signature,
+                requestId,
+                paymentId:
+                    req.body?.data?.id ||
+                    req.query["data.id"] ||
+                    req.query.id,
+                query: req.query
+            }
+        );
+
         if (!signature) {
             console.warn(
                 "Webhook sem assinatura"
@@ -557,6 +570,21 @@ async function webhook(req, res) {
         const manifest =
             `id:${paymentId};request-id:${requestId};ts:${ts};`;
 
+        console.log(
+            "WEBHOOK MANIFEST:",
+            manifest
+        );
+
+        console.log(
+            "WEBHOOK HASH GERADO:",
+            generated
+        );
+
+        console.log(
+            "WEBHOOK HASH RECEBIDO:",
+            hash
+        );
+
         const generated =
             crypto
                 .createHmac(
@@ -569,10 +597,17 @@ async function webhook(req, res) {
         // =====================================
         // Compare seguro
         // =====================================
+        const generatedBuffer =
+            Buffer.from(generated, "hex");
+
+        const hashBuffer =
+            Buffer.from(hash, "hex");
+
         const valid =
+            generatedBuffer.length === hashBuffer.length &&
             crypto.timingSafeEqual(
-                Buffer.from(generated),
-                Buffer.from(hash)
+                generatedBuffer,
+                hashBuffer
             );
 
         if (!valid) {
