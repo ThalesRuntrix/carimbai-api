@@ -569,20 +569,10 @@ async function webhook(req, res) {
         // =====================================
         const manifest =
             `id:${paymentId};request-id:${requestId};ts:${ts};`;
-
+            
         console.log(
             "WEBHOOK MANIFEST:",
             manifest
-        );
-
-        console.log(
-            "WEBHOOK HASH GERADO:",
-            generated
-        );
-
-        console.log(
-            "WEBHOOK HASH RECEBIDO:",
-            hash
         );
 
         const generated =
@@ -593,6 +583,17 @@ async function webhook(req, res) {
                 )
                 .update(manifest)
                 .digest("hex");
+
+        console.log(
+            "WEBHOOK HASH GERADO:",
+            generated
+        );
+
+        console.log(
+            "WEBHOOK HASH RECEBIDO:",
+            hash
+        );
+        
 
         // =====================================
         // Compare seguro
