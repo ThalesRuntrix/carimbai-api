@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     return send(res, 200, {});
   }
 
-  // 🔐 RATE LIMIT
+  // RATE LIMIT
   if (!rateLimit(req, res)) {
     return send(res, 429, {
       error: "Você excedeu o limite de requisições. Tente novamente em instantes."
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
     } = payload;
 
     // ============================
-    // 🔒 VALIDAÇÕES BÁSICAS
+    // VALIDAÇÕES BÁSICAS
     // ============================
 
     if (!cliente?.cpf || !cliente?.nome) {
@@ -93,12 +93,12 @@ export default async function handler(req, res) {
     }
 
     // ============================
-    // 🔥 TRANSACTION
+    // TRANSACTION
     // ============================
     await client.query("BEGIN");
 
     // ============================
-    // 🔥 CLIENTE
+    // CLIENTE
     // ============================
     let clienteId;
 
@@ -125,58 +125,62 @@ export default async function handler(req, res) {
     }
 
     // ============================
-    // 🔥 PRODUTOS + SKU + TOTAL
+    // PRODUTOS + SKU + TOTAL
     // ============================
     let total = 0;
 
     for (const item of itens) {
 
+      // ============================
+      // VALIDAÇÃO BÁSICA
+      // ============================
+
       if (
         !item.produto_id ||
-        !item.produto_sku_id ||
+        !Number.isInteger(Number(item.produto_id)) ||
+        !item.sku_id ||
+        !Number.isInteger(Number(item.sku_id)) ||
         item.quantidade <= 0 ||
         item.quantidade > 50
       ) {
         throw new Error("Item inválido");
       }
 
-      // ==========================================
-      // 🔎 BUSCA SKU + PRODUTO
-      // ==========================================
+      const produtoId = Number(item.produto_id);
+      const skuId = Number(item.sku_id);
+      const quantidade = Number(item.quantidade);
 
-      const skuResult = await client.query(
-        `
-          SELECT
-            ps.id,
-            ps.produto_id,
-            ps.preco AS preco_sku,
-            ps.estoque,
-            ps.ativo,
-            p.preco AS preco_produto
+        // ============================
+        // BLOQUEIA O SKU
+        // ============================
 
-          FROM produto_skus ps
-
-          INNER JOIN produtos p
-            ON p.id = ps.produto_id
-
-          WHERE ps.id = $1
-            AND ps.produto_id = $2
-
-          LIMIT 1
-        `,
-        [
-          item.produto_sku_id,
-          item.produto_id
-        ]
-      );
-
-      if (skuResult.rows.length === 0) {
-        throw new Error(
-          `SKU inválido: ${item.produto_sku_id}`
+        const skuResult = await client.query(
+          `
+            SELECT
+              ps.id,
+              ps.produto_id,
+              ps.estoque,
+              ps.estoque_reservado,
+              ps.preco AS sku_preco,
+              ps.ativo,
+              p.preco AS produto_preco
+            FROM produto_skus ps
+            INNER JOIN produtos p
+              ON p.id = ps.produto_id
+            WHERE ps.id = $1
+              AND ps.produto_id = $2
+            FOR UPDATE OF ps
+          `,
+          [skuId, produtoId]
         );
-      }
 
-      const sku = skuResult.rows[0];
+        if (skuResult.rows.length === 0) {
+          throw new Error(
+            `SKU inválido para o produto id: ${produtoId}`
+          );
+        }
+
+        const sku = skuResult.rows[0];
 
       // ==========================================
       // 🔒 SKU ATIVO
@@ -184,17 +188,23 @@ export default async function handler(req, res) {
 
       if (!sku.ativo) {
         throw new Error(
-          `SKU indisponível: ${item.produto_sku_id}`
+          `SKU indisponível: ${skuId}`
         );
       }
 
-      // ==========================================
-      // 📦 ESTOQUE
-      // ==========================================
+      // ============================
+      // ESTOQUE DISPONÍVEL
+      // ============================
 
-      if (sku.estoque < item.quantidade) {
+      const estoque = Number(sku.estoque);
+      const estoqueReservado = Number(sku.estoque_reservado);
+
+      const estoqueDisponivel =
+        estoque - estoqueReservado;
+
+      if (estoqueDisponivel < quantidade) {
         throw new Error(
-          `Estoque insuficiente para o SKU ${item.produto_sku_id}`
+          `Estoque insuficiente para o SKU ${skuId}`
         );
       }
 
@@ -209,18 +219,42 @@ export default async function handler(req, res) {
 
       if (!Number.isFinite(preco) || preco < 0) {
         throw new Error(
-          `Preço inválido para o SKU ${item.produto_sku_id}`
+          `Preço inválido para o SKU ${skuId}`
         );
       }
 
       const subtotal =
-        preco * item.quantidade;
+        preco * quantidade;
 
       item.preco_unitario = preco;
       item.subtotal = subtotal;
 
       total += subtotal;
     }
+
+    // ============================
+    // RESERVA
+    // ============================
+
+    await client.query(
+      `
+        UPDATE produto_skus
+        SET
+          estoque_reservado =
+            estoque_reservado + $1,
+          updated_at = now()
+        WHERE id = $2
+      `,
+      [quantidade, skuId]
+    );
+
+    // ============================
+    // A RESERVA SERÁ VINCULADA
+    // AO PEDIDO LOGO ABAIXO
+    // ============================
+
+    item._sku_id = skuId;
+
 
     // ============================
     // 🔥 FRETE + DESCONTO
@@ -282,34 +316,107 @@ export default async function handler(req, res) {
     const pedidoId = pedido.rows[0].id;
     const pedidoCodigo = pedido.rows[0].pedido_codigo;
     const nomeCliente = pedido.rows[0].nome_cliente;
+    
+    // ============================
+    // ITENS + RESERVAS
+    // ============================
 
-    // ============================
-    // 🔥 ITENS
-    // ============================
     for (const item of itens) {
+
+      // ============================
+      // PEDIDO_ITEM
+      // ============================
+
       await client.query(
-        `INSERT INTO pedido_itens (
-          pedido_id,
-          produto_id,
-          produto_sku_id,
-          quantidade,
-          preco_unitario,
-          subtotal,
-          personalizacao_txt,
-          personalizacao_img,
-          variacao
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        `
+          INSERT INTO pedido_itens (
+            pedido_id,
+            produto_id,
+            produto_sku_id,
+            quantidade,
+            preco_unitario,
+            subtotal,
+            personalizacao_txt,
+            personalizacao_img,
+            variacao
+          )
+          VALUES (
+            $1, $2, $3, $4, $5, $6, $7, $8, $9
+          )
+        `,
         [
           pedidoId,
           item.produto_id,
-          item.produto_sku_id,
+          item._sku_id,
           item.quantidade,
           item.preco_unitario,
           item.subtotal,
           item.personalizacao_txt || null,
           item.personalizacao_img || null,
           item.variacao || null
+        ]
+      );
+
+      // ============================
+      // RESERVA DO SKU
+      // ============================
+
+      await client.query(
+        `
+          INSERT INTO pedido_sku_reservas (
+            pedido_id,
+            produto_sku_id,
+            quantidade,
+            status,
+            expires_at
+          )
+          VALUES (
+            $1,
+            $2,
+            $3,
+            'reservado',
+            now() + interval '15 minutes'
+          )
+        `,
+        [
+          pedidoId,
+          item._sku_id,
+          item.quantidade
+        ]
+      );
+
+      // ============================
+      // MOVIMENTAÇÃO
+      // ============================
+
+      await client.query(
+        `
+          INSERT INTO movimentacoes_estoque (
+            produto_sku_id,
+            tipo,
+            quantidade,
+            estoque_anterior,
+            estoque_posterior,
+            motivo,
+            pedido_id,
+            observacao
+          )
+          SELECT
+            id,
+            'reserva',
+            $1,
+            estoque,
+            estoque,
+            'Reserva de estoque para pedido',
+            $2,
+            'Estoque reservado até pagamento ou expiração'
+          FROM produto_skus
+          WHERE id = $3
+        `,
+        [
+          item.quantidade,
+          pedidoId,
+          item._sku_id
         ]
       );
     }
