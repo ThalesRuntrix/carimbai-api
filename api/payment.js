@@ -1,6 +1,7 @@
 import client from "../lib/mercadoPago.js";
 import { Payment } from "mercadopago";
 import { processarPagamentoAprovado } from "../lib/processarPagamentoAprovado.js";
+import { processarPagamentoRecusado } from "../lib/processarPagamentoRecusado.js";
 
 const rateLimitMap = new Map();
 const paymentApi = new Payment(client);
@@ -683,36 +684,55 @@ async function webhook(req, res) {
 
             return res.status(200).json({
                 ok: true,
-                processed: true
+                processed: true,
+                status: "approved"
             });
         }
 
         // =====================================
-        // OUTROS STATUS
+        // REJECTED / CANCELLED
         // =====================================
+        if (
+            status === "rejected" ||
+            status === "cancelled"
+        ) {
+
+            await processarPagamentoRecusado({
+                pedido_id: pedido.id,
+                payment
+            });
+
+            return res.status(200).json({
+                ok: true,
+                processed: true,
+                status
+            });
+        }
+
+
+        // =====================================
+        // STATUS INTERMEDIÁRIO
+        // =====================================
+        // pending / in_process etc.
+        // Não mexe na reserva.
+
         await atualizarPedido(
             pedido.id,
             {
-                status_pagamento:
-                    status,
-                mp_payment_id:
-                    String(payment.id),
-                external_reference:
-                    payment.external_reference,
-                mp_status:
-                    payment.status,
-                mp_status_detail:
-                    payment.status_detail,
-                mp_payment_type:
-                    payment.payment_type_id,
-                mp_payment_method:
-                    payment.payment_method_id
+                status_pagamento: status,
+                mp_payment_id: String(payment.id),
+                external_reference: payment.external_reference,
+                mp_status: payment.status,
+                mp_status_detail: payment.status_detail,
+                mp_payment_type: payment.payment_type_id,
+                mp_payment_method: payment.payment_method_id
             }
         );
 
         return res.status(200).json({
             ok: true,
-            updated: true
+            updated: true,
+            status
         });
 
     } catch (error) {
