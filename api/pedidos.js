@@ -142,8 +142,8 @@ export default async function handler(req, res) {
       if (
         !item.produto_id ||
         !Number.isInteger(Number(item.produto_id)) ||
-        !item.sku_id ||
-        !Number.isInteger(Number(item.sku_id)) ||
+        !item.produto_sku_id ||
+        !Number.isInteger(Number(item.produto_sku_id)) ||
         item.quantidade <= 0 ||
         item.quantidade > 50
       ) {
@@ -151,7 +151,7 @@ export default async function handler(req, res) {
       }
 
       const produtoId = Number(item.produto_id);
-      const skuId = Number(item.sku_id);
+      const skuId = Number(item.produto_sku_id);
       const quantidade = Number(item.quantidade);
 
         // ============================
@@ -217,9 +217,9 @@ export default async function handler(req, res) {
       // ==========================================
 
       const preco =
-        sku.preco_sku !== null
-          ? Number(sku.preco_sku)
-          : Number(sku.preco_produto);
+        sku.sku_preco !== null
+          ? Number(sku.sku_preco)
+          : Number(sku.produto_preco);
 
       if (!Number.isFinite(preco) || preco < 0) {
         throw new Error(
@@ -234,30 +234,31 @@ export default async function handler(req, res) {
       item.subtotal = subtotal;
 
       total += subtotal;
-    }
 
-    // ============================
-    // RESERVA
-    // ============================
+      // ============================
+      // RESERVA
+      // ============================
 
-    await client.query(
-      `
-        UPDATE produto_skus
-        SET
-          estoque_reservado =
-            estoque_reservado + $1,
-          updated_at = now()
-        WHERE id = $2
-      `,
-      [quantidade, skuId]
-    );
+      await client.query(
+        `
+          UPDATE produto_skus
+          SET
+            estoque_reservado =
+              estoque_reservado + $1,
+            updated_at = now()
+          WHERE id = $2
+        `,
+        [quantidade, skuId]
+      );
 
-    // ============================
-    // A RESERVA SERÁ VINCULADA
-    // AO PEDIDO LOGO ABAIXO
-    // ============================
+      // ============================
+      // A RESERVA SERÁ VINCULADA
+      // AO PEDIDO LOGO ABAIXO
+      // ============================
 
-    item._sku_id = skuId;
+      item._sku_id = skuId;
+
+    }    
 
 
     // ============================
