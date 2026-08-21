@@ -62,12 +62,6 @@ export function formatarPedidoPayload(data) {
     throw new Error("Produto inválido");
   }
 
-  const sku_id = Number(data.sku_id);
-
-  if (!Number.isInteger(sku_id) || sku_id <= 0) {
-    throw new Error("SKU inválido");
-  }
-
   const produto_sku_id = Number(data.produto_sku_id);
 
   if (!Number.isInteger(produto_sku_id) || produto_sku_id <= 0) {
