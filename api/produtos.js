@@ -1046,7 +1046,7 @@ async function atualizarProduto(
               preco = $7,
               descricao = $8,
               estoque_minimo = $9,
-              ativo = $10,
+              
               updated_at = now()
             WHERE
               id = $11
@@ -1067,8 +1067,7 @@ async function atualizarProduto(
               inteiroOuZero(
                 sku.estoque_minimo
               )
-            ),
-            sku.ativo !== false,
+            ),            
             id,
             produtoId
           ]
