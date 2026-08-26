@@ -294,10 +294,17 @@ async function listarProdutosBackoffice(client) {
         ) AS total_variacoes,
 
         (
-          SELECT COUNT(*)
+          SELECT json_agg(
+            json_build_object(
+              'id', ps.id,
+              'sku', ps.sku,
+              'ativo', ps.ativo
+            )
+            ORDER BY ps.id
+          )
           FROM produto_skus ps
           WHERE ps.produto_id = p.id
-        ) AS total_skus,
+        ) AS produto_skus,
 
         (
           SELECT COUNT(*)
