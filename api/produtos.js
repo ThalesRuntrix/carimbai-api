@@ -1056,8 +1056,8 @@ async function atualizarProduto(
               
               updated_at = now()
             WHERE
-              id = $11
-              AND produto_id = $12
+              id = $10
+              AND produto_id = $11
             RETURNING id
           `,
           [
