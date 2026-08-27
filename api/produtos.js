@@ -1629,6 +1629,9 @@ export default async function handler(req, res) {
 
         const skus = p.produto_skus || [];
 
+        const possuiSkuAtivo =
+          skus.some(sku => sku.ativo === true);
+
       const skuComPreco = skus.find(
         sku =>
           sku.preco !== null &&
@@ -1667,6 +1670,8 @@ export default async function handler(req, res) {
           nome: p.nome,
 
           preco,
+
+          disponivel: possuiSkuAtivo,
 
           categoria:
             p.categorias?.nome ||
