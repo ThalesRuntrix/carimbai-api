@@ -283,6 +283,7 @@ async function listarPedidoItens(req, res) {
       await pool.query(
         `
           SELECT
+            pi.id AS pedido_item_id,
             pi.pedido_id,
             pi.produto_id,
             p.nome AS produto_nome,
@@ -299,11 +300,14 @@ async function listarPedidoItens(req, res) {
           LEFT JOIN produtos p
             ON p.id = pi.produto_id
 
-          WHERE pi.pedido_id = $1
+          INNER JOIN pedidos ped
+            ON ped.id = pi.pedido_id
+
+          WHERE ped.pedido_codigo = $1
 
           ORDER BY pi.id ASC
         `,
-        [pedidoId]
+        [pedidoCodigo]
       );
 
     return send(
