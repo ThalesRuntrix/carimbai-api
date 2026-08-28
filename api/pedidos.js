@@ -283,6 +283,7 @@ async function listarPedidoItens(req, res) {
       await pool.query(
         `
           SELECT
+            id AS pedido_item_id,
             pedido_id,
             produto_id,
             quantidade,
