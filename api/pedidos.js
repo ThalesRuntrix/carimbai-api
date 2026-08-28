@@ -283,28 +283,27 @@ async function listarPedidoItens(req, res) {
       await pool.query(
         `
           SELECT
-            id AS pedido_item_id,
-            pedido_id,
-            produto_id,
-            quantidade,
-            preco_unitario,
-            subtotal,
-            personalizacao_txt,
-            personalizacao_img,
-            variacao,
-            produto_sku_id
+            pi.pedido_id,
+            pi.produto_id,
+            p.nome AS produto_nome,
+            pi.quantidade,
+            pi.preco_unitario,
+            pi.subtotal,
+            pi.personalizacao_txt,
+            pi.personalizacao_img,
+            pi.variacao,
+            pi.produto_sku_id
 
-          FROM pedido_itens
+          FROM pedido_itens pi
 
-          WHERE pedido_id = (
-            SELECT id
-            FROM pedidos
-            WHERE pedido_codigo = $1
-          )
+          LEFT JOIN produtos p
+            ON p.id = pi.produto_id
 
-          ORDER BY id ASC
+          WHERE pi.pedido_id = $1
+
+          ORDER BY pi.id ASC
         `,
-        [pedidoCodigo]
+        [pedidoId]
       );
 
     return send(
