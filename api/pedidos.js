@@ -263,24 +263,19 @@ async function listarPedidos(req, res) {
 
 async function listarPedidoItens(req, res) {
 
-  const pedidoId =
-    Number(req.query?.pedido_id);
+  const pedidoCodigo =
+    String(req.query?.pedido_codigo || "").trim();
 
-
-  if (
-    !Number.isInteger(pedidoId) ||
-    pedidoId <= 0
-  ) {
+  if (!pedidoCodigo) {
 
     return send(
       res,
       400,
       {
-        error: "pedido_id inválido"
+        error: "pedido_codigo inválido"
       }
     );
   }
-
 
   try {
 
@@ -300,13 +295,16 @@ async function listarPedidoItens(req, res) {
 
           FROM pedido_itens
 
-          WHERE pedido_id = $1
+          WHERE pedido_id = (
+            SELECT id
+            FROM pedidos
+            WHERE pedido_codigo = $1
+          )
 
           ORDER BY id ASC
         `,
-        [pedidoId]
+        [pedidoCodigo]
       );
-
 
     return send(
       res,
@@ -325,7 +323,8 @@ async function listarPedidoItens(req, res) {
       res,
       500,
       {
-        error: "Erro ao listar itens do pedido"
+        error:
+          "Erro ao listar itens do pedido"
       }
     );
   }
@@ -342,20 +341,16 @@ async function editarPedido(req, res) {
     req.body || {};
 
 
-  const pedidoId =
-    Number(body.pedido_id);
+  const pedidoCodigo =
+  String(body.pedido_codigo || "").trim();
 
-
-  if (
-    !Number.isInteger(pedidoId) ||
-    pedidoId <= 0
-  ) {
+  if (!pedidoCodigo) {
 
     return send(
       res,
       400,
       {
-        error: "pedido_id inválido"
+        error: "pedido_codigo inválido"
       }
     );
   }
@@ -569,12 +564,13 @@ async function editarPedido(req, res) {
       await client.query(
         `
           SELECT
+            id,
             pedido_codigo
           FROM pedidos
-          WHERE id = $1
+          WHERE pedido_codigo = $1
           FOR UPDATE
         `,
-        [pedidoId]
+        [pedidoCodigo]
       );
 
 
@@ -592,6 +588,9 @@ async function editarPedido(req, res) {
         }
       );
     }
+    
+    const pedidoId =
+      pedidoExiste.rows[0].id;
 
 
     // ========================================================
