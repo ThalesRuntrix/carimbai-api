@@ -13,12 +13,12 @@ function send(res, status, data) {
 
   res.setHeader(
     "Access-Control-Allow-Methods",
-    "GET,PATCH,POST,OPTIONS"
+    "GET,PATCH,POST,DELETE,OPTIONS"
   );
 
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "Content-Type, X-Backoffice-Password"
+    "Content-Type"
   );
 
   return res.status(status).json(data);
@@ -166,6 +166,7 @@ async function buscarItensCarrinho(
             ci.preco_unitario,
             ci.personalizacao_txt,
             ci.personalizacao_img,
+            ci.imagem_url,
             ci.configuracao,
             ci.created_at,
             ci.updated_at,
@@ -229,6 +230,9 @@ function montarCarrinho(carrinho, itens) {
             variacao:
                 item.variacao,
 
+            imagem_url:
+                item.imagem_url, 
+
             quantidade,
 
             preco_unitario:
@@ -240,7 +244,7 @@ function montarCarrinho(carrinho, itens) {
                 item.personalizacao_txt,
 
             personalizacao_img:
-                item.personalizacao_img,
+                item.personalizacao_img,               
 
             configuracao:
                 item.configuracao || {}
@@ -634,6 +638,7 @@ async function adicionarItem(
                 SELECT
                     ps.id,
                     ps.produto_id,
+                    ps.produto_variacao_id,
                     ps.sku,
                     ps.nome AS sku_nome,
                     ps.cor,
@@ -643,12 +648,34 @@ async function adicionarItem(
                     ps.ativo,
 
                     p.nome AS produto_nome,
-                    p.preco AS produto_preco
+                    p.preco AS produto_preco,
+
+                    COALESCE(
+                        pv.imagem_url,
+
+                        (
+                            SELECT pi.imagem_url
+                            FROM produto_imagens pi
+                            WHERE
+                                pi.produto_id = p.id
+                                AND (
+                                    pi.cor IS NULL
+                                    OR pi.cor = ps.cor
+                                )
+                            ORDER BY
+                                pi.ordem ASC,
+                                pi.id ASC
+                            LIMIT 1
+                        )
+                    ) AS imagem_url
 
                 FROM produto_skus ps
 
                 INNER JOIN produtos p
                     ON p.id = ps.produto_id
+
+                LEFT JOIN produto_variacoes pv
+                    ON pv.id = ps.produto_variacao_id
 
                 WHERE
                     ps.id = $1
@@ -860,15 +887,17 @@ async function adicionarItem(
                     preco_unitario = $2,
                     produto_nome = $3,
                     sku = $4,
+                    imagem_url = $5,
                     updated_at = now()
 
-                WHERE id = $5
+                WHERE id = $6
                 `,
                 [
                     novaQuantidade,
                     preco,
                     sku.produto_nome,
                     sku.sku,
+                    sku.imagem_url,
                     itemExistente.id
                 ]
             );
@@ -886,25 +915,16 @@ async function adicionarItem(
                 INSERT INTO carrinho_itens (
 
                     carrinho_id,
-
                     produto_id,
-
                     produto_sku_id,
-
                     quantidade,
-
                     produto_nome,
-
                     sku,
-
                     variacao,
-
                     preco_unitario,
-
                     personalizacao_txt,
-
                     personalizacao_img,
-
+                    imagem_url,
                     configuracao
                 )
 
@@ -920,7 +940,8 @@ async function adicionarItem(
                     $8,
                     $9,
                     $10,
-                    $11
+                    $11,
+                    $12
                 )
                 `,
                 [
@@ -943,6 +964,8 @@ async function adicionarItem(
                     personalizacaoTxt,
 
                     personalizacaoImg,
+
+                    sku.imagem_url,
 
                     JSON.stringify(configuracao)
                 ]
