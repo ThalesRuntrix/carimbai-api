@@ -627,10 +627,7 @@ async function adicionarItem(
 
         // ====================================================
         // PRODUTO + SKU
-        // ====================================================
-        // O frontend NÃO informa preço.
-        // O backend busca o preço real.
-        // ====================================================
+        // ====================================================       
 
         const skuResult =
             await client.query(
@@ -656,15 +653,21 @@ async function adicionarItem(
                         (
                             SELECT pi.imagem_url
                             FROM produto_imagens pi
-                            WHERE
-                                pi.produto_id = p.id
-                                AND (
-                                    pi.cor IS NULL
-                                    OR pi.cor = ps.cor
-                                )
+                            WHERE pi.produto_id = p.id
                             ORDER BY
+                                CASE
+                                    WHEN pi.cor IS NOT DISTINCT FROM ps.cor
+                                        THEN 0
+
+                                    WHEN pi.cor IS NULL
+                                        THEN 1
+
+                                    ELSE 2
+                                END,
+
                                 pi.ordem ASC,
                                 pi.id ASC
+
                             LIMIT 1
                         )
                     ) AS imagem_url
