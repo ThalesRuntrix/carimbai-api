@@ -869,14 +869,14 @@ async function criarPedido(req, res) {
 
 
     const {
-      cliente,
-      endereco,
-      itens,
-      pagamento,
-      frete,
-      prazo,
-      entrega,
-      transportadora
+        cliente,
+        endereco,
+        cart_token,
+        pagamento,
+        frete,
+        prazo,
+        entrega,
+        transportadora
     } = payload;
 
 
@@ -899,7 +899,22 @@ async function criarPedido(req, res) {
       );
     }
 
+    if (
+        !cart_token ||
+        typeof cart_token !== "string"
+    ) {
 
+        return send(
+            res,
+            400,
+            {
+                error:
+                    "Carrinho inválido"
+            }
+        );
+    }
+
+/*
     if (
       !Array.isArray(itens) ||
       itens.length === 0
@@ -929,6 +944,7 @@ async function criarPedido(req, res) {
         }
       );
     }
+      */
 
 
     if (
@@ -955,6 +971,91 @@ async function criarPedido(req, res) {
     await client.query(
       "BEGIN"
     );
+
+    // ========================================================
+    // CARRINHO
+    // ========================================================
+
+    const carrinhoResult =
+        await client.query(
+            `
+            SELECT
+                id,
+                token,
+                status
+            FROM carrinhos
+            WHERE token = $1
+            FOR UPDATE
+            `,
+            [cart_token]
+        );
+
+
+    if (
+        carrinhoResult.rows.length === 0
+    ) {
+
+        throw new Error(
+            "Carrinho não encontrado"
+        );
+    }
+
+
+    const carrinho =
+        carrinhoResult.rows[0];
+
+
+    if (
+        carrinho.status !== "ativo"
+    ) {
+
+        throw new Error(
+            "Carrinho não está disponível"
+        );
+    }
+
+    const carrinhoItensResult =
+        await client.query(
+            `
+            SELECT
+                id,
+                produto_id,
+                produto_sku_id,
+                quantidade,
+                produto_nome,
+                sku,
+                variacao,
+                preco_unitario,
+                personalizacao_txt,
+                personalizacao_img,
+                imagem_url,
+                configuracao
+
+            FROM carrinho_itens
+
+            WHERE carrinho_id = $1
+
+            ORDER BY id
+
+            FOR UPDATE
+            `,
+            [
+                carrinho.id
+            ]
+        );
+
+
+    const itens =
+        carrinhoItensResult.rows;
+
+    if (
+        itens.length === 0
+    ) {
+
+        throw new Error(
+            "Carrinho vazio"
+        );
+    }
 
 
     // ========================================================
