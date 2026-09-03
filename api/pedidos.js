@@ -1628,6 +1628,25 @@ async function criarPedido(req, res) {
       );
     }
 
+    // ========================================================
+    // CARRINHO -> CONVERTIDO
+    // ========================================================
+
+    await client.query(
+        `
+        UPDATE carrinhos
+
+        SET
+            status = 'convertido',
+            updated_at = now()
+
+        WHERE id = $1
+        `,
+        [
+            carrinho.id
+        ]
+    );
+
 
     // ========================================================
     // COMMIT
