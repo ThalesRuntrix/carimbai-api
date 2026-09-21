@@ -914,39 +914,6 @@ async function criarPedido(req, res) {
         );
     }
 
-/*
-    if (
-      !Array.isArray(itens) ||
-      itens.length === 0
-    ) {
-
-      return send(
-        res,
-        400,
-        {
-          error:
-            "Itens inválidos"
-        }
-      );
-    }
-
-
-    if (
-      itens.length > 20
-    ) {
-
-      return send(
-        res,
-        400,
-        {
-          error:
-            "Limite de itens excedido"
-        }
-      );
-    }
-      */
-
-
     if (
       !["pix", "cartao"].includes(
         pagamento
@@ -1356,9 +1323,11 @@ async function criarPedido(req, res) {
     if (
       pagamento === "pix"
     ) {
-
+      desconto = 0;
+      /*
       desconto =
         total * 0.05;
+        */
     }
 
 
