@@ -10,9 +10,11 @@ const CATEGORIAS_DETALHE = {
   carimbo: "carimbos",
   placa: "placas",
   cracha: "crachas",
+  /*
   afiacao: "afiacao",
   revelacao: "revelacao",
   impressao: "impressao"
+  */
 };
 
 // =====================================================
@@ -252,6 +254,7 @@ async function buscarProdutoCompleto(client, produtoId) {
     [produtoId]
   );
 
+  /*
   const afiacaoResult = await client.query(
     `
       SELECT *
@@ -281,6 +284,7 @@ async function buscarProdutoCompleto(client, produtoId) {
     `,
     [produtoId]
   );
+  */
 
   return {
     ...produto,
@@ -294,6 +298,7 @@ async function buscarProdutoCompleto(client, produtoId) {
     crachas:
       crachasResult.rows,
 
+    /*
     afiacao:
       afiacaoResult.rows || null,
 
@@ -302,6 +307,7 @@ async function buscarProdutoCompleto(client, produtoId) {
 
     impressao:
       impressaoResult.rows || null,
+      */
 
     produto_variacoes:
       variacoesResult.rows,
@@ -1593,6 +1599,7 @@ export default async function handler(req, res) {
           "tipo_material"
         ]
       },
+      /*
 
       afiacao: {
         tabela: "afiacao",
@@ -1614,6 +1621,7 @@ export default async function handler(req, res) {
           "tipo_material"
         ]
       },
+      */
     };
 
     let select =
@@ -1705,14 +1713,18 @@ export default async function handler(req, res) {
         ? Number(skuComPreco.preco)
         : Number(p.preco);
 
+      const descricao = p.descricao;
+
         const detalhes =
           p.carimbos?.[0] ||
           p.placas?.[0] ||
           p.crachas?.[0] ||
+          /*
           p.afiacao?.[0] ||
           p.revelacao?.[0] ||
-          p.impressao?.[0] ||
-          null;
+          p.impressao?.[0] ||          
+          */
+         null;    
 
         const imagens =
           p.produto_imagens
@@ -1737,7 +1749,7 @@ export default async function handler(req, res) {
 
           preco,
 
-          descricao: p.descricao,
+          descricao,
 
           disponivel: possuiSkuAtivo,
 
