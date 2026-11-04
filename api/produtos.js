@@ -413,7 +413,7 @@ function validarPayloadProduto(body) {
   return {
     nome,
     preco,
-    descricao: descricao || null,
+    descricao: body.descricao || null,
     categoria_id:
       Number(body.categoria_id),
 
