@@ -9,7 +9,10 @@ const ALLOWED_ORIGIN = "https://runtrix.com.br";
 const CATEGORIAS_DETALHE = {
   carimbo: "carimbos",
   placa: "placas",
-  cracha: "crachas"
+  cracha: "crachas",
+  afiacao: "afiacao",
+  revelacao: "revelacao",
+  impressao: "impressao"
 };
 
 // =====================================================
@@ -249,6 +252,36 @@ async function buscarProdutoCompleto(client, produtoId) {
     [produtoId]
   );
 
+  const afiacaoResult = await client.query(
+    `
+      SELECT *
+      FROM afiacao
+      WHERE produto_id = $1
+      LIMIT 1
+    `,
+    [produtoId]
+  );
+
+  const revelacaoResult = await client.query(
+    `
+      SELECT *
+      FROM revelacao
+      WHERE produto_id = $1
+      LIMIT 1
+    `,
+    [produtoId]
+  );
+
+  const impressaoResult = await client.query(
+    `
+      SELECT *
+      FROM impressao
+      WHERE produto_id = $1
+      LIMIT 1
+    `,
+    [produtoId]
+  );
+
   return {
     ...produto,
 
@@ -260,6 +293,15 @@ async function buscarProdutoCompleto(client, produtoId) {
 
     crachas:
       crachasResult.rows,
+
+    afiacao:
+      afiacaoResult.rows,
+
+    revelacao:
+      revelacaoResult.rows,
+
+    impressao:
+      impressaoResult.rows,
 
     produto_variacoes:
       variacoesResult.rows,
@@ -371,6 +413,7 @@ function validarPayloadProduto(body) {
   return {
     nome,
     preco,
+    descricao: descricao || null,
     categoria_id:
       Number(body.categoria_id),
 
@@ -1550,7 +1593,28 @@ export default async function handler(req, res) {
         filtros: [
           "tipo_material"
         ]
-      }
+      },
+
+      afiacao: {
+        tabela: "afiacao",
+        filtros: [
+          "tipo_material"
+        ]
+      },
+
+      revelacao: {
+        tabela: "revelacao",
+        filtros: [
+          "tipo_material"
+        ]
+      },
+
+      impressao: {
+        tabela: "impressao",
+        filtros: [
+          "tipo_material"
+        ]
+      },
     };
 
     let select =
@@ -1646,6 +1710,9 @@ export default async function handler(req, res) {
           p.carimbos?.[0] ||
           p.placas?.[0] ||
           p.crachas?.[0] ||
+          p.afiacao?.[0] ||
+          p.revelacao?.[0] ||
+          p.impressao?.[0] ||
           null;
 
         const imagens =
@@ -1670,6 +1737,8 @@ export default async function handler(req, res) {
           nome: p.nome,
 
           preco,
+
+          descricao: p.descricao,
 
           disponivel: possuiSkuAtivo,
 
