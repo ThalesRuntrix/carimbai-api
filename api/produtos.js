@@ -295,13 +295,13 @@ async function buscarProdutoCompleto(client, produtoId) {
       crachasResult.rows,
 
     afiacao:
-      afiacaoResult.rows,
+      afiacaoResult.rows || null,
 
     revelacao:
-      revelacaoResult.rows,
+      revelacaoResult.rows || null,
 
     impressao:
-      impressaoResult.rows,
+      impressaoResult.rows || null,
 
     produto_variacoes:
       variacoesResult.rows,
@@ -413,7 +413,6 @@ function validarPayloadProduto(body) {
   return {
     nome,
     preco,
-    descricao: body.descricao || null,
     categoria_id:
       Number(body.categoria_id),
 
