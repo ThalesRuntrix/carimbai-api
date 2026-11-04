@@ -326,7 +326,6 @@ async function listarProdutosBackoffice(client) {
         p.id,
         p.nome,
         p.preco,
-        p.descricao,
         p.categoria_id,
         c.nome AS categoria,
 
