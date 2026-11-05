@@ -1713,12 +1713,6 @@ export default async function handler(req, res) {
         ? Number(skuComPreco.preco)
         : Number(p.preco);
 
-      const descricao = skus.find(
-        sku =>
-          sku.descricao !== null &&
-          sku.descricao !== undefined
-      );
-
       const detalhes =
         p.carimbos?.[0] ||
         p.placas?.[0] ||
@@ -1752,8 +1746,6 @@ export default async function handler(req, res) {
         nome: p.nome,
 
         preco,
-
-        descricao,
 
         disponivel: possuiSkuAtivo,
 

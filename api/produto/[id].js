@@ -179,6 +179,19 @@ export default async function handler(req, res) {
 
     }
 
+    // DESCRIÇÃO DO PRODUTO
+    function obterDescricaoSku(sku) {
+
+      if (
+        sku &&
+        sku.descricao !== null &&
+        sku.descricao !== undefined
+      ) {
+        return sku;
+      }
+      return "A descrição deste produto ainda não foi adicionada";
+    }
+
     // =========================
     // VARIAÇÕES
     // =========================
@@ -198,6 +211,8 @@ export default async function handler(req, res) {
         sku_id: sku?.id || null,
 
         preco: obterPrecoSku(sku),
+
+        descricao: obterDescricaoSku(sku),
 
         estoque: sku
           ? Number(sku.estoque)
@@ -237,6 +252,8 @@ export default async function handler(req, res) {
 
           preco: obterPrecoSku(sku),
 
+          descricao: obterDescricaoSku(sku),
+
           estoque: sku
             ? Number(sku.estoque)
             : 0,
@@ -251,7 +268,7 @@ export default async function handler(req, res) {
 
       ];
 
-    }
+    }    
 
 
     // =========================
@@ -265,8 +282,6 @@ export default async function handler(req, res) {
       nome: p.nome,
 
       preco: p.preco,
-
-      descricao: p.descricao,
 
       categoria: p.categorias?.nome || null,
 
