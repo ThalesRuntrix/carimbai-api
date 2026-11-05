@@ -1713,58 +1713,58 @@ export default async function handler(req, res) {
         ? Number(skuComPreco.preco)
         : Number(p.preco);
 
-      const descricao = p.descricao;
+      const descricao = "Aqui está a descrição do produto!";
 
-        const detalhes =
-          p.carimbos?.[0] ||
-          p.placas?.[0] ||
-          p.crachas?.[0] ||
-          /*
-          p.afiacao?.[0] ||
-          p.revelacao?.[0] ||
-          p.impressao?.[0] ||          
-          */
-         null;    
+      const detalhes =
+        p.carimbos?.[0] ||
+        p.placas?.[0] ||
+        p.crachas?.[0] ||
+        /*
+        p.afiacao?.[0] ||
+        p.revelacao?.[0] ||
+        p.impressao?.[0] ||          
+        */
+        null;    
 
-        const imagens =
-          p.produto_imagens
-            ?.sort(
-              (a, b) =>
-                (a.ordem || 0) -
-                (b.ordem || 0)
-            )
-            .map(
-              img =>
-                img.imagem_url
-            ) || [];
+      const imagens =
+        p.produto_imagens
+          ?.sort(
+            (a, b) =>
+              (a.ordem || 0) -
+              (b.ordem || 0)
+          )
+          .map(
+            img =>
+              img.imagem_url
+          ) || [];
 
-        const imagemPrincipal =
-          imagens[0] || null;
+      const imagemPrincipal =
+        imagens[0] || null;
 
-        return {
+      return {
 
-          id: p.id,
+        id: p.id,
 
-          nome: p.nome,
+        nome: p.nome,
 
-          preco,
+        preco,
 
-          descricao,
+        descricao,
 
-          disponivel: possuiSkuAtivo,
+        disponivel: possuiSkuAtivo,
 
-          categoria:
-            p.categorias?.nome ||
-            null,
+        categoria:
+          p.categorias?.nome ||
+          null,
 
-          imagem_url:
-            imagemPrincipal,
+        imagem_url:
+          imagemPrincipal,
 
-          imagens,
+        imagens,
 
-          detalhes
-        };
-      });
+        detalhes
+      };
+    });
 
     return send(
       res,
