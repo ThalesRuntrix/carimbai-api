@@ -266,6 +266,8 @@ export default async function handler(req, res) {
 
       preco: p.preco,
 
+      descricao: p.descricao,
+
       categoria: p.categorias?.nome || null,
 
       variacoes
