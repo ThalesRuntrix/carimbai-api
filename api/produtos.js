@@ -1713,7 +1713,11 @@ export default async function handler(req, res) {
         ? Number(skuComPreco.preco)
         : Number(p.preco);
 
-      const descricao = "Aqui está a descrição do produto!";
+      const descricao = skus.find(
+        sku =>
+          sku.descricao !== null &&
+          sku.descricao !== undefined
+      );
 
       const detalhes =
         p.carimbos?.[0] ||
