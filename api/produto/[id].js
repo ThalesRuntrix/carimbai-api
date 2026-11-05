@@ -187,7 +187,7 @@ export default async function handler(req, res) {
         sku.descricao !== null &&
         sku.descricao !== undefined
       ) {
-        return sku;
+        return sku.descricao;
       }
       return "A descrição deste produto ainda não foi adicionada";
     }
